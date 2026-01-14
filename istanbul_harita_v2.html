@@ -594,10 +594,10 @@
                 else katsayi = data.toplam || 0;
             }
 
-            // 4. kök normalizasyonu: toplam / ⁴√nüfus (nüfus etkisi %25)
+            // Karekök normalizasyonu: katsayı / √nüfus × 100 (nüfus etkisi %50)
             if (key && mahalleNufus[key]) {
                 const nufus = Math.max(mahalleNufus[key], 1000);  // Minimum 1000 eşiği
-                return katsayi / Math.pow(nufus, 0.25) * 10;
+                return (katsayi / Math.sqrt(nufus)) * 100;
             }
 
             // Nüfus verisi yoksa ham değer döndür
@@ -868,33 +868,75 @@
             map.setView([41.15, 29.0], 10);
         }
 
-        // İlçe ortalamalarını 4. kök ile yumuşak normalize et
+        // İlçe değerlerini normalize mahalle ortalaması + çift çarpan kapsama ile hesapla
         function updateIlceOrtalamalari() {
-            // Sosyal - 4. kök normalizasyonu (nüfus etkisi %25)
+            // Sosyal - normalize mahalle ortalaması × √(nüfus kapsaması × mahalle kapsaması)
             Object.keys(sosyalIlce).forEach(ilceKey => {
-                const nufus = ilceNufus[ilceKey];
-                sosyalIlce[ilceKey].nufus = nufus || 0;
+                const ilceNufusu = ilceNufus[ilceKey] || 0;
+                sosyalIlce[ilceKey].nufus = ilceNufusu;
 
-                if (nufus && nufus > 0) {
-                    // 4. kök: toplam / ⁴√nüfus (nüfus etkisi yumuşak)
-                    sosyalIlce[ilceKey].ortalama = sosyalIlce[ilceKey].toplam / Math.pow(nufus, 0.25) * 10;
-                } else {
-                    // Nüfus verisi yoksa sadece toplam
-                    sosyalIlce[ilceKey].ortalama = sosyalIlce[ilceKey].toplam;
-                }
+                // İlçeye ait tüm mahallelerin normalize değerlerini topla ve ortalamasını al
+                let normalizeTotal = 0;
+                let count = 0;
+                let veriNufusu = 0;  // Veri girilen mahallelerin toplam nüfusu
+
+                sosyalIlce[ilceKey].mahalleSet.forEach(mahalleKey => {
+                    const data = sosyalMahalle[mahalleKey];
+                    if (data) {
+                        normalizeTotal += getMahalleValue(data, mahalleKey);
+                        count++;
+                        // Bu mahallenin nüfusunu ekle
+                        veriNufusu += mahalleNufus[mahalleKey] || 0;
+                    }
+                });
+
+                const ortalama = count > 0 ? normalizeTotal / count : 0;
+
+                // Çift çarpan kapsama
+                const nufusKapsamasi = ilceNufusu > 0 ? veriNufusu / ilceNufusu : 0;
+                const gercekMahalle = gercekMahalleSayilari[ilceKey] || count;
+                const mahalleKapsamasi = gercekMahalle > 0 ? count / gercekMahalle : 0;
+
+                // Birleşik kapsama: √(nüfus × mahalle)
+                const birlesikKapsama = Math.sqrt(nufusKapsamasi * mahalleKapsamasi);
+
+                sosyalIlce[ilceKey].ortalama = ortalama * birlesikKapsama;
+                sosyalIlce[ilceKey].kapsamaOrani = birlesikKapsama;
+                sosyalIlce[ilceKey].nufusKapsamasi = nufusKapsamasi;
+                sosyalIlce[ilceKey].mahalleKapsamasi = mahalleKapsamasi;
             });
 
-            // DG - 4. kök normalizasyonu
+            // DG - normalize mahalle ortalaması × √(nüfus kapsaması × mahalle kapsaması)
             Object.keys(dgIlce).forEach(ilceKey => {
-                const nufus = ilceNufus[ilceKey];
-                dgIlce[ilceKey].nufus = nufus || 0;
+                const ilceNufusu = ilceNufus[ilceKey] || 0;
+                dgIlce[ilceKey].nufus = ilceNufusu;
 
-                if (nufus && nufus > 0) {
-                    // 4. kök
-                    dgIlce[ilceKey].ortalama = dgIlce[ilceKey].toplam / Math.pow(nufus, 0.25) * 10;
-                } else {
-                    dgIlce[ilceKey].ortalama = dgIlce[ilceKey].toplam;
-                }
+                // İlçeye ait tüm mahallelerin normalize değerlerini topla ve ortalamasını al
+                let normalizeTotal = 0;
+                let count = 0;
+                let veriNufusu = 0;
+
+                dgIlce[ilceKey].mahalleSet.forEach(mahalleKey => {
+                    const data = dgMahalle[mahalleKey];
+                    if (data) {
+                        normalizeTotal += getMahalleValue(data, mahalleKey);
+                        count++;
+                        veriNufusu += mahalleNufus[mahalleKey] || 0;
+                    }
+                });
+
+                const ortalama = count > 0 ? normalizeTotal / count : 0;
+
+                // Çift çarpan kapsama
+                const nufusKapsamasi = ilceNufusu > 0 ? veriNufusu / ilceNufusu : 0;
+                const gercekMahalle = gercekMahalleSayilari[ilceKey] || count;
+                const mahalleKapsamasi = gercekMahalle > 0 ? count / gercekMahalle : 0;
+
+                // Birleşik kapsama: √(nüfus × mahalle)
+                const birlesikKapsama = Math.sqrt(nufusKapsamasi * mahalleKapsamasi);
+
+                dgIlce[ilceKey].ortalama = ortalama * birlesikKapsama;
+                dgIlce[ilceKey].kapsamaOrani = birlesikKapsama;
             });
 
             // Min/max yeniden hesapla
@@ -1026,15 +1068,28 @@
             let value = 0;
             if (data) {
                 if (state.selectedGrup) {
-                    // Seçili grubun toplamını 4. kök ile normalize et
-                    const nufus = data.nufus || ilceNufus[ilceKey] || 0;
-                    if (state.dataSource === 'sosyal' && data.ustGruplar) {
-                        const grupTotal = data.ustGruplar[state.selectedGrup] || 0;
-                        value = nufus > 0 ? grupTotal / Math.pow(nufus, 0.25) * 10 : grupTotal;
-                    } else if (state.dataSource === 'dezavantajli' && data.gruplar) {
-                        const grupTotal = data.gruplar[state.selectedGrup] || 0;
-                        value = nufus > 0 ? grupTotal / Math.pow(nufus, 0.25) * 10 : grupTotal;
-                    }
+                    // Seçili grup için normalize mahalle ortalaması × √kapsama (nüfus bazlı)
+                    let normalizeTotal = 0;
+                    let count = 0;
+                    let veriNufusu = 0;
+                    const mahalleData = getMahalleData();
+                    data.mahalleSet.forEach(mahalleKey => {
+                        const mData = mahalleData[mahalleKey];
+                        if (mData) {
+                            normalizeTotal += getMahalleValue(mData, mahalleKey);
+                            count++;
+                            veriNufusu += mahalleNufus[mahalleKey] || 0;
+                        }
+                    });
+                    const ortalama = count > 0 ? normalizeTotal / count : 0;
+
+                    // Çift çarpan kapsama
+                    const ilceNufusu = data.nufus || ilceNufus[ilceKey] || 0;
+                    const nufusKapsamasi = ilceNufusu > 0 ? veriNufusu / ilceNufusu : 0;
+                    const gercekMahalle = gercekMahalleSayilari[ilceKey] || count;
+                    const mahalleKapsamasi = gercekMahalle > 0 ? count / gercekMahalle : 0;
+                    const birlesikKapsama = Math.sqrt(nufusKapsamasi * mahalleKapsamasi);
+                    value = ortalama * birlesikKapsama;
                 } else {
                     value = data.ortalama || 0;
                 }
