@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV → Excel Dönüştürücü</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.4rem;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            background: #fff;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #666;
+        }
+
+        .drop-zone-text {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .drop-zone-hint {
+            color: #999;
+            font-size: 0.8rem;
+            margin-top: 8px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            background: #fff;
+            border: 1px solid #ddd;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status-title {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-message {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ddd;
+            border-top-color: #333;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #fff;
+            color: #333;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #f0f0f0;
+        }
+
+        .btn.primary {
+            background: #333;
+            color: #fff;
+            border-color: #333;
+        }
+
+        .btn.primary:hover {
+            background: #444;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>CSV → Excel Dönüştürücü</h1>
+
+        <div class="drop-zone" id="dropZone">
+            <div class="drop-zone-text">CSV dosyasını sürükleyin veya tıklayın</div>
+            <div class="drop-zone-hint">.csv formatı desteklenir</div>
+            <input type="file" id="fileInput" accept=".csv">
+        </div>
+
+        <div class="status" id="status">
+            <div class="status-title" id="statusTitle">
+                <div class="spinner"></div><span>İşleniyor...</span>
+            </div>
+            <div class="status-message" id="statusMessage"></div>
+            <div class="btn-group" id="btnGroup" style="display: none;">
+                <button class="btn" id="downloadRawBtn">Düzenli Excel</button>
+                <button class="btn primary" id="downloadPivotBtn">Pivot Excel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="ses_data.js"></script>
+    <script>
+        // =============================================================================
+        // KATEGORİ TANIMLARI
+        // =============================================================================
+
+        const BOLGESEL_PATTERN = /^Bölgenizde yaşanan sosyal sorunlar nelerdir ve hangi yoğunlukta gözlemlenmektedir\? - (.+)$/;
+        const EVHANIMLARI_PATTERN = /^Ev hanımları düzensiz olarak en çok hangi işlerden ek gelir elde etmektedir\? - (.+)$/;
+        const DIGER_PATTERN = /^Diğer sosyal sorunlar en çok hangi alanda gözlemlenmektedir\? - (.+)$/;
+        const DEZAVANTAJLI_SORUN_PATTERN = /^Bu dezavantajlı gruplarda yoğun olarak hangi sosyal sorunlar gözlemlenmektedir\? - (.+)$/;
+
+        const SOSYAL_MAPPINGS = [
+            { pattern: /^Eğitim alanında en çok gözlemlenen sosyal sorunlar nelerdir\? - (.+)$/, ustGrup: 'Eğitim' },
+            { pattern: /^Çalışma hayatında en çok gözlemlenen sosyal sorunlar nelerdir\? - (.+)$/, ustGrup: 'Çalışma Hayatı' },
+            { pattern: /^Ayrımcılık alanında en çok gözlemlenen sosyal sorunlar nelerdir\? - (.+)$/, ustGrup: 'Ayrımcılık' },
+            { pattern: /^Şiddet alanında en çok gözlemlenen sosyal sorunlar nelerdir\? - (.+)$/, ustGrup: 'Şiddet' },
+        ];
+
+        const DEZAVANTAJLI_GRUPLAR = ['Çocuk', 'Kadın', 'Engelli', 'Yaşlı', 'Lgbti+', 'LGBTI+', 'Göçmen', 'Evsiz', 'Roman', 'Genç', 'Genel'];
+        const ILCE_PATTERN = /^İlçe Seçiniz$/;
+        const MAHALLE_PATTERNS = [/^Mahalle Seçiniz$/, /^Mahalle$/];
+        const SECIM_PATTERNS = [/^Seçim Yapınız$/, /^Seçiniz$/];
+
+        // =============================================================================
+        // ALT GRUP NORMALIZASYON (tutarsız isimleri düzelt)
+        // =============================================================================
+
+        function normalizeAltGrup(altGrup) {
+            let s = (altGrup || '').toString().trim();
+            if (!s) return s;
+
+            // 1. "Temeli" → "Temelli" düzeltmesi (sonunda veya ortada olabilir)
+            s = s.split('Temeli ').join('Temelli ');
+            s = s.replace(/Temeli$/, 'Temelli');
+
+            // 2. "Etnik Köken" → "Irk ve Etnik Köken" düzeltmesi (sadece başta "Irk ve" yoksa)
+            if (!s.includes('Irk ve') && s.includes('Etnik Köken')) {
+                s = s.split('Etnik Köken').join('Irk ve Etnik Köken');
+            }
+
+            return s;
+        }
+
+        // =============================================================================
+        // HELPER FUNCTIONS
+        // =============================================================================
+
+        function isScoreValue(val) {
+            if (val === null || val === undefined || val === '') return false;
+            const num = parseInt(val, 10);
+            return !isNaN(num) && num >= 1 && num <= 5;
+        }
+
+        function splitByComma(str) {
+            if (!str || str.toString().trim() === '') return [];
+            return str.toString().split(',').map(s => s.trim()).filter(s => s);
+        }
+
+        function classifyColumn(colName) {
+            if (colName.match(BOLGESEL_PATTERN)) return { sheet: 'bolgesel', ustGrup: 'Bölgesel Yoğunluk', altGrup: normalizeAltGrup(colName.match(BOLGESEL_PATTERN)[1]) };
+            if (colName.match(EVHANIMLARI_PATTERN)) return { sheet: 'evhanimlari', ustGrup: 'Ev Hanımları Ek Gelir', altGrup: normalizeAltGrup(colName.match(EVHANIMLARI_PATTERN)[1]) };
+            if (colName.match(DIGER_PATTERN)) return { sheet: 'diger', ustGrup: 'Diğer', altGrup: normalizeAltGrup(colName.match(DIGER_PATTERN)[1]) };
+            for (const m of SOSYAL_MAPPINGS) { const match = colName.match(m.pattern); if (match) return { sheet: 'sosyal', ustGrup: m.ustGrup, altGrup: normalizeAltGrup(match[1]) }; }
+            return null;
+        }
+
+        function findLocationGroups(columns) {
+            const groups = [];
+            for (let i = 0; i < columns.length - 2; i++) {
+                if (ILCE_PATTERN.test(columns[i]) && MAHALLE_PATTERNS.some(p => p.test(columns[i + 1])) && SECIM_PATTERNS.some(p => p.test(columns[i + 2]))) {
+                    groups.push({ ilceIdx: i, mahalleIdx: i + 1, secimIdx: i + 2 });
+                    i += 2;
+                }
+            }
+            return groups;
+        }
+
+        function detectLocationContext(columns, ilceColIdx) {
+            for (let i = ilceColIdx - 1; i >= 0; i--) {
+                if (columns[i].match(BOLGESEL_PATTERN)) return { sheet: 'dezavantajli_mahalle', ustGrup: 'Dezavantajlı Gruplar', altGrup: '' };
+                const c = classifyColumn(columns[i]);
+                if (c) return c;
+            }
+            return { sheet: 'genel', ustGrup: 'Genel', altGrup: '' };
+        }
+
+        function isDezavantajliValue(val) {
+            if (!val) return false;
+            return splitByComma(val).some(v => DEZAVANTAJLI_GRUPLAR.some(g => v.toLowerCase().includes(g.toLowerCase())));
+        }
+
+        // =============================================================================
+        // MAIN TRANSFORMATION
+        // =============================================================================
+
+        function processCSV(csvData) {
+            const workbook = XLSX.read(csvData, { type: 'string' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            if (data.length < 2) throw new Error('CSV dosyası boş veya geçersiz');
+
+            const headers = data[0], rows = data.slice(1);
+            const colIndex = {}; headers.forEach((h, i) => { colIndex[h] = i; });
+
+            let mainIlceIdx = headers.findIndex(h => ILCE_PATTERN.test(h));
+
+            const result = {
+                bolgeselRows: [], sosyalRows: [], digerRows: [], evhanimlariRows: [],
+                mahalleRows: [], evhanimlariMahalleRows: [],
+                dezavantajliMahalleRows: [], dezavantajliSorunRows: [],
+                summaryRows: []
+            };
+
+            const columnMappings = [];
+            headers.forEach((col, idx) => { const c = classifyColumn(col); if (c) columnMappings.push({ idx, col, ...c }); });
+
+            const dezavantajliSorunCols = [];
+            headers.forEach((col, idx) => { const m = col.match(DEZAVANTAJLI_SORUN_PATTERN); if (m) dezavantajliSorunCols.push({ idx, altGrup: normalizeAltGrup(m[1].trim()) }); });
+
+            const locationGroups = findLocationGroups(headers);
+            let lastBolgeselIdx = -1;
+            headers.forEach((col, idx) => { if (col.match(BOLGESEL_PATTERN)) lastBolgeselIdx = idx; });
+
+            rows.forEach(row => {
+                const mainIlce = mainIlceIdx >= 0 ? (row[mainIlceIdx] || '').toString().trim() : '';
+                const baseData = {
+                    'Sicil No': row[colIndex['Personel Sicil No']] || '',
+                    'Personel Ad Soyad': row[colIndex['Personel Ad Soyad']] || '',
+                    'Aktör ID': row[colIndex['Aktör ID']] || '',
+                    'Aktör Adı': row[colIndex['Aktör Adı']] || '',
+                    'Çalışma Alanı': row[colIndex['Çalışma Alanı']] || '',
+                    'İlçe': mainIlce,
+                    'Timestamp': row[colIndex['Timestamp']] || ''
+                };
+
+                // Timestamp'ten tarih formatı oluştur (dd.mm.yyyy)
+                // CSV formatı: 2024-12-18 13:30:47
+                let tarihStr = '';
+                const ts = (row[colIndex['Timestamp']] || '').toString().trim();
+                if (ts) {
+                    // YYYY-MM-DD yakala
+                    const match = ts.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                    if (match) {
+                        const yyyy = match[1];
+                        const mm = match[2];
+                        const dd = match[3];
+                        tarihStr = `${dd}.${mm}.${yyyy}`;
+                    } else if (/^\d+(\.\d+)?$/.test(ts)) {
+                        // Sayısal (Excel Serial) ise doğrudan Number'a çevir
+                        tarihStr = parseFloat(ts);
+                    } else {
+                        // Eğer format uymazsa olduğu gibi bırak
+                        tarihStr = ts;
+                    }
+                }
+
+                // Özet sayfası için tüm ilgili sütunları topla (CSV'deki gerçek sütun isimleri)
+                const summaryRow = {
+                    'Personel Sicil No': row[colIndex['Personel Sicil No']] || '',
+                    'Personel Ad Soyad': row[colIndex['Personel Ad Soyad']] || '',
+                    'Aktör ID': row[colIndex['Aktör ID']] || '',
+                    'Aktör Adı': row[colIndex['Aktör Adı']] || '',
+                    'Görüşme Yapılan Kişi': row[colIndex['Görüşme Yapılan/Temas Kurulan Kişinin Adı Soyadı']] || '',
+                    'Ünvan': row[colIndex['Ünvan/Görev']] || '',
+                    'Telefon': row[colIndex['Telefon Numarası']] || '',
+                    'E-Mail': row[colIndex['Mail Adresi']] || '',
+                    'Çalışma Alanı': row[colIndex['Çalışma Alanı']] || '',
+                    'Görüşme Bilgi Düzeyi': row[colIndex['Görüşme gerçekleştirdiğiniz aktör, sorulan sorulara detaylı bilgi verdi mi?']] || '',
+                    'Bilgi Tutarsızlığı': row[colIndex['Verilen bilgiler arasında herhangi bir tutarsızlık gözlemlendi mi?']] || '',
+                    'Beden Dili Uyumu': row[colIndex['Aktörün beden dili ve ses tonu, verdiği yanıtlarla ne kadar uyumluydu?']] || '',
+                    'Genel İşbirliği': row[colIndex['Görüşme yaptığınız aktör, genel olarak sizinle iş birliği yapma konusunda ne kadar istekli göründü?']] || '',
+                    'İlçe': mainIlce,
+                    'Tarih': tarihStr
+                };
+                result.summaryRows.push(summaryRow);
+
+                columnMappings.forEach(m => {
+                    const val = row[m.idx];
+                    if (isScoreValue(val)) {
+                        const newRow = { ...baseData, 'Üst Grup': m.ustGrup, 'Alt Grup': m.altGrup, 'Değer': parseInt(val, 10) };
+                        if (m.sheet === 'bolgesel') result.bolgeselRows.push(newRow);
+                        else if (m.sheet === 'sosyal') result.sosyalRows.push(newRow);
+                        else if (m.sheet === 'diger') result.digerRows.push(newRow);
+                        else if (m.sheet === 'evhanimlari') result.evhanimlariRows.push(newRow);
+                    }
+                });
+
+                dezavantajliSorunCols.forEach(col => {
+                    const val = row[col.idx];
+                    if (val && val.toString().trim()) {
+                        splitByComma(val).forEach(sorun => {
+                            if (sorun.toLowerCase() === 'hiçbiri') return;
+                            result.dezavantajliSorunRows.push({ ...baseData, 'Dezavantajlı Grup': col.altGrup, 'Sosyal Sorun': sorun });
+                        });
+                    }
+                });
+
+                locationGroups.forEach(loc => {
+                    const ilce = row[loc.ilceIdx], mahalleStr = row[loc.mahalleIdx], secimStr = row[loc.secimIdx];
+                    if (!ilce || !mahalleStr) return;
+                    const ctx = detectLocationContext(headers, loc.ilceIdx);
+                    const mahalleler = splitByComma(mahalleStr), secimler = splitByComma(secimStr);
+                    const isAfterBolgesel = loc.ilceIdx > lastBolgeselIdx && lastBolgeselIdx > 0;
+                    const isDezavantajli = isAfterBolgesel && isDezavantajliValue(secimStr);
+
+                    if (isDezavantajli) {
+                        mahalleler.forEach(mah => secimler.forEach(grup => {
+                            result.dezavantajliMahalleRows.push({ ...baseData, 'İlçe': ilce.toString().trim(), 'Mahalle': mah, 'Dezavantajlı Grup': grup });
+                        }));
+                    } else if (ctx.sheet !== 'dezavantajli_mahalle') {
+                        // Sadece dezavantajli_mahalle OLMAYAN veriler mahalleRows'a gider
+                        mahalleler.forEach(mah => {
+                            if (secimler.length === 0) {
+                                const row = { ...baseData, 'İlçe': ilce.toString().trim(), 'Üst Grup': ctx.ustGrup === 'Diğer' ? '' : ctx.ustGrup, 'Alt Grup': normalizeAltGrup(''), 'Mahalle': mah };
+                                ctx.sheet === 'evhanimlari' ? result.evhanimlariMahalleRows.push(row) : result.mahalleRows.push(row);
+                            } else {
+                                secimler.forEach(sec => {
+                                    const row = { ...baseData, 'İlçe': ilce.toString().trim(), 'Üst Grup': ctx.ustGrup === 'Diğer' ? sec : ctx.ustGrup, 'Alt Grup': normalizeAltGrup(sec), 'Mahalle': mah };
+                                    ctx.sheet === 'evhanimlari' ? result.evhanimlariMahalleRows.push(row) : result.mahalleRows.push(row);
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+            return result;
+        }
+
+        // =============================================================================
+        // PIVOT FUNCTIONS
+        // =============================================================================
+
+        function createBolgeselPivot(rows) {
+            // İlçe bazında toplam hesapla
+            const ilceToplam = new Map();
+            const map = new Map();
+            rows.forEach(r => {
+                const ilce = r['İlçe'] || '';
+                const altGrup = r['Alt Grup'] || '';
+                const deger = r['Değer'] || 0;
+
+                ilceToplam.set(ilce, (ilceToplam.get(ilce) || 0) + deger);
+
+                const k = `${ilce}|${altGrup}`;
+                if (!map.has(k)) map.set(k, { ilce, altGrup, toplam: 0 });
+                map.get(k).toplam += deger;
+            });
+
+            const data = [['İlçe', 'Alt Grup', 'Toplam Değer', 'İlçe Yüzdesi %']];
+            Array.from(map.values())
+                .sort((a, b) => a.ilce.localeCompare(b.ilce, 'tr') || a.altGrup.localeCompare(b.altGrup, 'tr'))
+                .forEach(p => {
+                    const ilceTotal = ilceToplam.get(p.ilce) || 1;
+                    const yuzde = ((p.toplam / ilceTotal) * 100).toFixed(2);
+                    data.push([p.ilce, p.altGrup, p.toplam, parseFloat(yuzde)]);
+                });
+            return data;
+        }
+
+        function createBolgeselSayimPivot(rows) {
+            // İlçe bazında 1-5 puan sayımı
+            const ilceMap = new Map();
+
+            rows.forEach(r => {
+                const ilce = r['İlçe'] || '';
+                const deger = parseInt(r['Değer']) || 0;
+
+                if (!ilce || deger < 1 || deger > 5) return;
+
+                if (!ilceMap.has(ilce)) {
+                    ilceMap.set(ilce, { ilce, counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } });
+                }
+                ilceMap.get(ilce).counts[deger]++;
+            });
+
+            // Ağırlıklı ortalama hesapla
+            const data = [['İlçe', '1', '2', '3', '4', '5', 'Toplam', 'Ağırlıklı Ortalama', 'Normalize (0-1)']];
+
+            Array.from(ilceMap.values())
+                .sort((a, b) => a.ilce.localeCompare(b.ilce, 'tr'))
+                .forEach(p => {
+                    const c = p.counts;
+                    const toplam = c[1] + c[2] + c[3] + c[4] + c[5];
+                    // Ağırlıklı ortalama = (c1*1 + c2*2 + c3*3 + c4*4 + c5*5) / toplam
+                    const agirlikli = toplam > 0
+                        ? (c[1] * 1 + c[2] * 2 + c[3] * 3 + c[4] * 4 + c[5] * 5) / toplam
+                        : 0;
+                    // 0-1 normalize: (ortalama - 1) / (5 - 1)
+                    const normalized = agirlikli > 0 ? (agirlikli - 1) / 4 : 0;
+
+                    data.push([
+                        p.ilce,
+                        c[1], c[2], c[3], c[4], c[5],
+                        toplam,
+                        parseFloat(agirlikli.toFixed(6)),
+                        parseFloat(normalized.toFixed(6))
+                    ]);
+                });
+
+            return data;
+        }
+
+        function createSosyalPivot(bolgeselRows, sosyalRows) {
+            // Normalize helper - trim and clean whitespace
+            const norm = s => (s || '').toString().trim().replace(/\s+/g, ' ');
+
+            // 1. Bölgesel veriden ilçe+üstGrup bazında toplam ve yüzde hesapla
+            const ilceToplam = new Map();
+            const bolgeselMap = new Map();
+            bolgeselRows.forEach(r => {
+                const ilce = norm(r['İlçe']);
+                const altGrup = norm(r['Alt Grup']); // Bölgesel'de Alt Grup = Üst Grup ismi
+                const deger = r['Değer'] || 0;
+
+                ilceToplam.set(ilce, (ilceToplam.get(ilce) || 0) + deger);
+
+                const k = `${ilce}|${altGrup}`;
+                if (!bolgeselMap.has(k)) bolgeselMap.set(k, { toplam: 0 });
+                bolgeselMap.get(k).toplam += deger;
+            });
+
+            // Bölgesel üst grup yüzdeleri - her key için yüzde hesapla
+            const ustGrupYuzde = new Map();
+            bolgeselMap.forEach((v, k) => {
+                const [ilce] = k.split('|');
+                const ilceTotal = ilceToplam.get(ilce) || 1;
+                ustGrupYuzde.set(k, (v.toplam / ilceTotal) * 100);
+            });
+
+            // 2. Sosyal veriden ilçe+üstGrup+altGrup bazında toplam hesapla
+            const ustGrupToplam = new Map();
+            const sosyalMap = new Map();
+            sosyalRows.forEach(r => {
+                const ilce = norm(r['İlçe']);
+                const ustGrup = norm(r['Üst Grup']);
+                const altGrup = norm(r['Alt Grup']);
+                const deger = r['Değer'] || 0;
+
+                const ugKey = `${ilce}|${ustGrup}`;
+                ustGrupToplam.set(ugKey, (ustGrupToplam.get(ugKey) || 0) + deger);
+
+                const k = `${ilce}|${ustGrup}|${altGrup}`;
+                if (!sosyalMap.has(k)) sosyalMap.set(k, { ilce, ustGrup, altGrup, toplam: 0 });
+                sosyalMap.get(k).toplam += deger;
+            });
+
+            // 3. Bölgesel'de olup Sosyal'de olmayan grupları ekle (Üst Grup = Alt Grup)
+            const bolgeselGruplar = ['Bağımlılık', 'Bakım', 'Barınma', 'Güvenlik'];
+            bolgeselRows.forEach(r => {
+                const ilce = norm(r['İlçe']);
+                const altGrup = norm(r['Alt Grup']);
+                const deger = r['Değer'] || 0;
+
+                if (bolgeselGruplar.some(g => altGrup.includes(g))) {
+                    const k = `${ilce}|${altGrup}|${altGrup}`;
+                    const ugKey = `${ilce}|${altGrup}`;
+                    ustGrupToplam.set(ugKey, (ustGrupToplam.get(ugKey) || 0) + deger);
+                    if (!sosyalMap.has(k)) sosyalMap.set(k, { ilce, ustGrup: altGrup, altGrup: altGrup, toplam: 0 });
+                    sosyalMap.get(k).toplam += deger;
+                }
+            });
+
+            const data = [['İlçe', 'Üst Grup', 'Alt Grup', 'Toplam Değer', 'Üst Grup Yüzdesi %', 'Alt Grup Dağılımı %', 'Alt Grup Genel Katsayı']];
+            Array.from(sosyalMap.values())
+                .sort((a, b) => a.ilce.localeCompare(b.ilce, 'tr') || a.ustGrup.localeCompare(b.ustGrup, 'tr') || a.altGrup.localeCompare(b.altGrup, 'tr'))
+                .forEach(p => {
+                    const ugKey = `${p.ilce}|${p.ustGrup}`;
+                    const ustYuzde = ustGrupYuzde.get(ugKey) || 0;
+                    const ugToplam = ustGrupToplam.get(ugKey) || 1;
+                    const altDagilim = (p.toplam / ugToplam) * 100;
+                    // Alt Grup Genel Katsayı = (Üst Grup Yüzdesi × Alt Grup Dağılımı) / 100
+                    // Toplayınca Üst Grup Yüzdesi'ni verir
+                    const genelKatsayi = (ustYuzde * altDagilim) / 100;
+                    data.push([
+                        p.ilce, p.ustGrup, p.altGrup, p.toplam,
+                        parseFloat(ustYuzde.toFixed(2)),
+                        parseFloat(altDagilim.toFixed(2)),
+                        parseFloat(genelKatsayi.toFixed(2))
+                    ]);
+                });
+            return data;
+        }
+
+        function createEvhanimlariPivot(rows) {
+            const map = new Map();
+            rows.forEach(r => {
+                const k = `${r['İlçe']}|${r['Alt Grup']}`;
+                if (!map.has(k)) map.set(k, { ilce: r['İlçe'] || '', altGrup: r['Alt Grup'] || '', toplam: 0 });
+                map.get(k).toplam += (r['Değer'] || 0);
+            });
+            const data = [['İlçe', 'Alt Grup', 'Toplam Değer']];
+            Array.from(map.values()).sort((a, b) => a.ilce.localeCompare(b.ilce, 'tr') || a.altGrup.localeCompare(b.altGrup, 'tr'))
+                .forEach(p => data.push([p.ilce, p.altGrup, p.toplam]));
+            return data;
+        }
+
+        function createMahallePivot(mahalleRows, altGrupKatsayiMap, ilceNormalizeMap) {
+            const norm = s => (s || '').toString().trim().replace(/\s+/g, ' ').toLocaleUpperCase('tr-TR');
+            const normDisplay = s => (s || '').toString().trim().replace(/\s+/g, ' ');
+
+            // Mahalle isimlerinden "Mahallesi", "Mah.", "Mah" gibi ekleri temizle
+            // Ayrıca İ→I, Ş→S, Ü→U, Ö→O, Ç→C, Ğ→G normalize et (SES verisindeki tutarsızlıklar için)
+            const normMahalle = s => {
+                let n = norm(s);
+                n = n.replace(/\s*MAHALLESİ\s*$/i, '');
+                n = n.replace(/\s*MAH\.\s*$/i, '');
+                n = n.replace(/\s*MAH\s*$/i, '');
+                // Türkçe karakterleri ASCII'ye normalize et
+                n = n.replace(/İ/g, 'I').replace(/Ş/g, 'S').replace(/Ü/g, 'U').replace(/Ö/g, 'O').replace(/Ç/g, 'C').replace(/Ğ/g, 'G');
+                return n.trim();
+            };
+
+            // SES verisi map'i oluştur (İlçe+Mahalle → SES Skoru)
+            const sesMap = new Map();
+            const MIN_SES = 12.5, MAX_SES = 100;
+            if (typeof SES_DATA !== 'undefined') {
+                SES_DATA.forEach(d => {
+                    const key = `${norm(d.ilce)}|${normMahalle(d.mahalle)}`;
+                    sesMap.set(key, d.ses_skor);
+                });
+            }
+
+            // 1. Önce tüm verileri topla ve grupla
+            const map = new Map();
+            mahalleRows.forEach(r => {
+                const ilce = normDisplay(r['İlçe']);
+                const mahalle = normDisplay(r['Mahalle']);
+                const ustGrup = normDisplay(r['Üst Grup']);
+                const altGrup = normDisplay(r['Alt Grup']);
+                const k = `${ilce}|${mahalle}|${ustGrup}|${altGrup}`;
+                if (!map.has(k)) map.set(k, { ilce, mahalle, ustGrup, altGrup, ids: new Set() });
+                if (r['Aktör ID']) map.get(k).ids.add(r['Aktör ID']);
+            });
+
+            // 2. İlçe+ÜstGrup+AltGrup bazında toplam say hesapla
+            const altGrupToplam = new Map();
+            map.forEach(p => {
+                const agKey = `${norm(p.ilce)}|${norm(p.ustGrup)}|${norm(p.altGrup)}`;
+                altGrupToplam.set(agKey, (altGrupToplam.get(agKey) || 0) + p.ids.size);
+            });
+
+            // 3. Önce tüm değerleri hesapla ve min/max bul
+            const tempRows = [];
+            let minSesBolgesel = Infinity, maxSesBolgesel = -Infinity;
+
+            Array.from(map.values()).forEach(p => {
+                const agKey = `${norm(p.ilce)}|${norm(p.ustGrup)}|${norm(p.altGrup)}`;
+                const toplamSay = altGrupToplam.get(agKey) || 1;
+                const mahalleAgirlik = (p.ids.size / toplamSay) * 100;
+                const altGrupKatsayi = altGrupKatsayiMap ? (altGrupKatsayiMap.get(agKey) || 0) : 0;
+                const mahalleKatsayi = (altGrupKatsayi * mahalleAgirlik) / 100;
+                const sesKey = `${norm(p.ilce)}|${normMahalle(p.mahalle)}`;
+                const sesSkoru = sesMap.get(sesKey) || 0;
+                const sesAgirlik = sesSkoru > 0 ? ((100 - sesSkoru) / 100) + 1 : 0;
+
+                // İlçe Normalize değerini al
+                const ilceNormalize = ilceNormalizeMap ? (ilceNormalizeMap.get(norm(p.ilce)) || 0) : 0;
+
+                // Bölgesel Ağırlıklı Katsayı = Mahalle Genel Katsayı × İlçe Normalize
+                const bolgeselAgirlikli = mahalleKatsayi * ilceNormalize;
+
+                // SES Bölgesel Katsayı = Bölgesel Ağırlıklı Katsayı × SES Ağırlığı
+                const sesBolgeselKatsayi = bolgeselAgirlikli * sesAgirlik;
+
+                if (sesBolgeselKatsayi > 0) {
+                    if (sesBolgeselKatsayi < minSesBolgesel) minSesBolgesel = sesBolgeselKatsayi;
+                    if (sesBolgeselKatsayi > maxSesBolgesel) maxSesBolgesel = sesBolgeselKatsayi;
+                }
+
+                tempRows.push({
+                    p, mahalleAgirlik, mahalleKatsayi, sesSkoru, sesAgirlik,
+                    ilceNormalize, bolgeselAgirlikli, sesBolgeselKatsayi
+                });
+            });
+
+            // 4. Veriyi oluştur
+            const data = [['İlçe', 'Mahalle', 'Üst Grup', 'Alt Grup', 'Say Sicil No', 'Mahalle Ağırlığı %', 'Mahalle Genel Katsayı', 'SES Skoru', 'SES Ağırlığı', 'İlçe Normalize', 'Bölgesel Ağırlıklı Katsayı', 'SES Bölgesel Katsayı', 'Normalize SES Bölgesel Katsayı']];
+
+            tempRows
+                .sort((a, b) => a.p.ilce.localeCompare(b.p.ilce, 'tr') || a.p.mahalle.localeCompare(b.p.mahalle, 'tr') || a.p.ustGrup.localeCompare(b.p.ustGrup, 'tr') || a.p.altGrup.localeCompare(b.p.altGrup, 'tr'))
+                .forEach(row => {
+                    // Normalize SES Bölgesel Katsayı = 0-1 arası
+                    let normalizeSesBolgesel = 0;
+                    if (maxSesBolgesel > minSesBolgesel && row.sesBolgeselKatsayi > 0) {
+                        normalizeSesBolgesel = (row.sesBolgeselKatsayi - minSesBolgesel) / (maxSesBolgesel - minSesBolgesel);
+                    }
+
+                    data.push([
+                        row.p.ilce, row.p.mahalle, row.p.ustGrup, row.p.altGrup, row.p.ids.size,
+                        parseFloat(row.mahalleAgirlik.toFixed(2)),
+                        parseFloat(row.mahalleKatsayi.toFixed(4)),
+                        row.sesSkoru,
+                        parseFloat(row.sesAgirlik.toFixed(3)),
+                        parseFloat(row.ilceNormalize.toFixed(6)),
+                        parseFloat(row.bolgeselAgirlikli.toFixed(6)),
+                        parseFloat(row.sesBolgeselKatsayi.toFixed(6)),
+                        parseFloat(normalizeSesBolgesel.toFixed(6))
+                    ]);
+                });
+            return data;
+        }
+
+        function createDezavantajliMahallePivot(rows, sorunDagilimMap, ilceNormalizeMap) {
+            const norm = s => (s || '').toString().trim().replace(/\s+/g, ' ').toLocaleUpperCase('tr-TR');
+            const normDisplay = s => (s || '').toString().trim().replace(/\s+/g, ' ');
+
+            // Mahalle isimlerinden ekleri temizle ve Türkçe karakterleri normalize et
+            const normMahalle = s => {
+                let n = norm(s);
+                n = n.split('MAHALLESİ').join('').split('MAH.').join('').split('MAH').join('');
+                n = n.replace(/İ/g, 'I').replace(/Ş/g, 'S').replace(/Ü/g, 'U').replace(/Ö/g, 'O').replace(/Ç/g, 'C').replace(/Ğ/g, 'G');
+                return n.trim();
+            };
+
+            // SES verisi map'i oluştur
+            const sesMap = new Map();
+            if (typeof SES_DATA !== 'undefined') {
+                SES_DATA.forEach(d => {
+                    const key = `${norm(d.ilce)}|${normMahalle(d.mahalle)}`;
+                    sesMap.set(key, d.ses_skor);
+                });
+            }
+
+            // 1. Önce tüm verileri topla ve grupla (İlçe + Mahalle + Grup)
+            const map = new Map();
+            rows.forEach(r => {
+                const ilce = normDisplay(r['İlçe']);
+                const mahalle = normDisplay(r['Mahalle']);
+                const grup = normDisplay(r['Dezavantajlı Grup']);
+                const k = `${ilce}|${mahalle}|${grup}`;
+                if (!map.has(k)) map.set(k, { ilce, mahalle, grup, count: 0 });
+                map.get(k).count++;
+            });
+
+            // 2. İlçe bazında TOPLAM hesapla
+            const ilceToplam = new Map();
+            map.forEach(p => {
+                ilceToplam.set(p.ilce, (ilceToplam.get(p.ilce) || 0) + p.count);
+            });
+
+            // 3. Önce tüm değerleri hesapla ve min/max bul
+            const tempRows = [];
+            let minSesBolgesel = Infinity, maxSesBolgesel = -Infinity;
+
+            Array.from(map.values()).forEach(p => {
+                const mahalleDGToplam = p.count;
+                const ilceDGToplam = ilceToplam.get(p.ilce) || 1;
+                const mahalleDGOrani = mahalleDGToplam / ilceDGToplam;
+                const sesKey = `${norm(p.ilce)}|${normMahalle(p.mahalle)}`;
+                const sesSkoru = sesMap.get(sesKey) || 0;
+                const sesAgirlik = sesSkoru > 0 ? ((100 - sesSkoru) / 100) + 1 : 0;
+
+                // İlçe Normalize değerini al
+                const ilceNormalize = ilceNormalizeMap ? (ilceNormalizeMap.get(norm(p.ilce)) || 0) : 0;
+
+                // Bölgesel DG Katsayısı = Mahalle DG Oranı × İlçe Normalize
+                const bolgeselDGKatsayi = (mahalleDGOrani * 100) * ilceNormalize;
+
+                // SES Bölgesel DG Katsayısı = Bölgesel DG Katsayısı × SES Ağırlığı
+                const sesBolgeselDGKatsayi = bolgeselDGKatsayi * sesAgirlik;
+
+                if (sesBolgeselDGKatsayi > 0) {
+                    if (sesBolgeselDGKatsayi < minSesBolgesel) minSesBolgesel = sesBolgeselDGKatsayi;
+                    if (sesBolgeselDGKatsayi > maxSesBolgesel) maxSesBolgesel = sesBolgeselDGKatsayi;
+                }
+
+                tempRows.push({
+                    p, mahalleDGToplam, ilceDGToplam, mahalleDGOrani, sesSkoru, sesAgirlik,
+                    ilceNormalize, bolgeselDGKatsayi, sesBolgeselDGKatsayi
+                });
+            });
+
+            // 4. Veriyi oluştur
+            const data = [['İlçe', 'Mahalle', 'Dezavantajlı Grup', 'Mahallede Bildirilen DG Toplamı', 'İlçede Bildirilen DG Toplamı', 'Mahallede Bildirilen DG Oranı', 'SES Skoru', 'SES Ağırlığı', 'İlçe Normalize', 'Bölgesel DG Katsayısı', 'SES Bölgesel DG Katsayısı', 'Normalize SES Bölgesel DG Katsayısı']];
+
+            tempRows
+                .sort((a, b) => a.p.ilce.localeCompare(b.p.ilce, 'tr') || a.p.mahalle.localeCompare(b.p.mahalle, 'tr') || a.p.grup.localeCompare(b.p.grup, 'tr'))
+                .forEach(row => {
+                    // Normalize SES Bölgesel DG Katsayısı = 0-1 arası
+                    let normalizeSesBolgesel = 0;
+                    if (maxSesBolgesel > minSesBolgesel && row.sesBolgeselDGKatsayi > 0) {
+                        normalizeSesBolgesel = (row.sesBolgeselDGKatsayi - minSesBolgesel) / (maxSesBolgesel - minSesBolgesel);
+                    }
+
+                    data.push([
+                        row.p.ilce,
+                        row.p.mahalle,
+                        row.p.grup,
+                        row.mahalleDGToplam,
+                        row.ilceDGToplam,
+                        parseFloat((row.mahalleDGOrani * 100).toFixed(4)),
+                        row.sesSkoru,
+                        parseFloat(row.sesAgirlik.toFixed(3)),
+                        parseFloat(row.ilceNormalize.toFixed(6)),
+                        parseFloat(row.bolgeselDGKatsayi.toFixed(6)),
+                        parseFloat(row.sesBolgeselDGKatsayi.toFixed(6)),
+                        parseFloat(normalizeSesBolgesel.toFixed(6))
+                    ]);
+                });
+            return data;
+        }
+
+        function createDezavantajliSorunPivot(rows, dgSesMap) {
+            const normDisplay = s => (s || '').toString().trim().replace(/\s+/g, ' ');
+
+            // 1. Önce tüm verileri topla ve grupla (İlçe + Sosyal Sorun + Dezavantajlı Grup)
+            // Her satır = 1 bildirim
+            const map = new Map();
+            rows.forEach(r => {
+                const ilce = normDisplay(r['İlçe']);
+                const sorun = normDisplay(r['Sosyal Sorun']);
+                const grup = normDisplay(r['Dezavantajlı Grup']);
+                const k = `${ilce}|${sorun}|${grup}`;
+                if (!map.has(k)) map.set(k, { ilce, sorun, grup, count: 0 });
+                map.get(k).count++;
+            });
+
+            // 2. İlçe + Sosyal Sorun bazında toplam hesapla (Bu İlçede Bu Sorun Kaç Kez Bildirilmiş?)
+            const ilceSorunToplam = new Map();
+            map.forEach(p => {
+                const key = `${p.ilce}|${p.sorun}`;
+                ilceSorunToplam.set(key, (ilceSorunToplam.get(key) || 0) + p.count);
+            });
+
+            // 3. Veriyi oluştur
+            const data = [['İlçe', 'Sosyal Sorun', 'Dezavantajlı Grup', 'Bildirim Sayısı', 'Bu İlçede Bu Sorun Kaç Kez Bildirilmiş?', 'Bu Sosyal Sorunu Bu İlçede Bu Grup Yüzde Kaç Yaşıyor?']];
+            Array.from(map.values())
+                .sort((a, b) => a.ilce.localeCompare(b.ilce, 'tr') || a.sorun.localeCompare(b.sorun, 'tr') || a.grup.localeCompare(b.grup, 'tr'))
+                .forEach(p => {
+                    const isKey = `${p.ilce}|${p.sorun}`;
+                    const ilceSorunSayi = ilceSorunToplam.get(isKey) || 1;
+
+                    // Bildirim Sayısı
+                    const bildirimSayisi = p.count;
+
+                    // Bu İlçede Bu Sorun Kaç Kez Bildirilmiş?
+                    const ilcedeSorunToplam = ilceSorunSayi;
+
+                    // Bu Sosyal Sorunu Bu İlçede Bu Grup Yüzde Kaç Yaşıyor? = (Bildirim Sayısı / İlçe Sorun Toplamı) * 100
+                    const grupYuzdesi = (bildirimSayisi / ilcedeSorunToplam) * 100;
+
+                    data.push([
+                        p.ilce,
+                        p.sorun,
+                        p.grup,
+                        bildirimSayisi,
+                        ilcedeSorunToplam,
+                        (grupYuzdesi / 100).toFixed(4).replace('.', ',')
+                    ]);
+                });
+            return data;
+        }
+
+        // =============================================================================
+        // EXCEL CREATION
+        // =============================================================================
+
+        function createRawExcel(r) {
+            const wb = XLSX.utils.book_new();
+
+            // Özet sayfası header'ları
+            const hOzet = ['Personel Sicil No', 'Personel Ad Soyad', 'Aktör ID', 'Aktör Adı', 'Görüşme Yapılan Kişi', 'Ünvan', 'Telefon', 'E-Mail', 'Çalışma Alanı', 'Görüşme Bilgi Düzeyi', 'Bilgi Tutarsızlığı', 'Beden Dili Uyumu', 'Genel İşbirliği', 'İlçe', 'Tarih'];
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([hOzet, ...r.summaryRows.map(x => hOzet.map(h => x[h]))]), 'Ozet');
+
+            const h1 = ['Sicil No', 'Personel Ad Soyad', 'Aktör ID', 'Aktör Adı', 'Çalışma Alanı', 'İlçe', 'Üst Grup', 'Alt Grup', 'Değer', 'Timestamp'];
+            const h2 = ['Sicil No', 'Personel Ad Soyad', 'Aktör ID', 'Aktör Adı', 'Çalışma Alanı', 'Üst Grup', 'Alt Grup', 'Değer', 'Timestamp'];
+            const h3 = ['Sicil No', 'Personel Ad Soyad', 'Aktör ID', 'Aktör Adı', 'Çalışma Alanı', 'İlçe', 'Üst Grup', 'Alt Grup', 'Mahalle', 'Timestamp'];
+            const h4 = ['Sicil No', 'Personel Ad Soyad', 'Aktör ID', 'Aktör Adı', 'Çalışma Alanı', 'İlçe', 'Mahalle', 'Dezavantajlı Grup', 'Timestamp'];
+            const h5 = ['Sicil No', 'Personel Ad Soyad', 'Aktör ID', 'Aktör Adı', 'Çalışma Alanı', 'İlçe', 'Dezavantajlı Grup', 'Sosyal Sorun', 'Timestamp'];
+
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([h1, ...r.bolgeselRows.map(x => h1.map(h => x[h]))]), 'Bolgesel_Yogunluk');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([h1, ...r.sosyalRows.map(x => h1.map(h => x[h]))]), 'Sosyal_Sorunlar');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([h2, ...r.digerRows.map(x => h2.map(h => x[h]))]), 'Diger_Sorunlar');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([h1, ...r.evhanimlariRows.map(x => h1.map(h => x[h]))]), 'Evhanimlari_EkGelir');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([h3, ...r.mahalleRows.map(x => h3.map(h => x[h]))]), 'Mahalle_Haritalama');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([h3, ...r.evhanimlariMahalleRows.map(x => h3.map(h => x[h]))]), 'Evhanimlari_Mahalle');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([h4, ...r.dezavantajliMahalleRows.map(x => h4.map(h => x[h]))]), 'Dezavantajli_Mahalle');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([h5, ...r.dezavantajliSorunRows.map(x => h5.map(h => x[h]))]), 'Dezavantajli_Sorun');
+            return wb;
+        }
+
+        function createPivotExcel(r) {
+            const wb = XLSX.utils.book_new();
+            const norm = s => (s || '').toString().trim().replace(/\s+/g, ' ').toLocaleUpperCase('tr-TR');
+
+            // Özet sayfası header'ları - Pivot'ta da ilk sayfa olarak
+            const hOzet = ['Personel Sicil No', 'Personel Ad Soyad', 'Aktör ID', 'Aktör Adı', 'Görüşme Yapılan Kişi', 'Ünvan', 'Telefon', 'E-Mail', 'Çalışma Alanı', 'Görüşme Bilgi Düzeyi', 'Bilgi Tutarsızlığı', 'Beden Dili Uyumu', 'Genel İşbirliği', 'İlçe', 'Tarih'];
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([hOzet, ...r.summaryRows.map(x => hOzet.map(h => x[h]))]), 'Ozet');
+
+            // Sosyal Pivot'tan Alt Grup Genel Katsayı map'ini oluştur
+            const sosyalPivotData = createSosyalPivot(r.bolgeselRows, r.sosyalRows);
+            const altGrupKatsayiMap = new Map();
+            // Header'ı atla (index 0), gerisi veri satırları
+            for (let i = 1; i < sosyalPivotData.length; i++) {
+                const row = sosyalPivotData[i];
+                // [İlçe, Üst Grup, Alt Grup, Toplam Değer, Üst Grup Yüzdesi %, Alt Grup Dağılımı %, Alt Grup Genel Katsayı]
+                const ilce = norm(row[0]);
+                const ustGrup = norm(row[1]);
+                const altGrup = norm(row[2]);
+                const katsayi = row[6]; // Alt Grup Genel Katsayı
+                const key = `${ilce}|${ustGrup}|${altGrup}`;
+                altGrupKatsayiMap.set(key, katsayi);
+            }
+
+            // Sorun Dağılımı Map'i oluştur: İlçe+DG → [{sorun, dagilim%}]
+            const sorunDagilimMap = new Map();
+            const normDisplay = s => (s || '').toString().trim().replace(/\s+/g, ' ');
+
+            // Önce İlçe+DG bazında toplam sayı hesapla
+            const igToplamSorun = new Map();
+            r.dezavantajliSorunRows.forEach(row => {
+                const ilce = normDisplay(row['İlçe']);
+                const grup = normDisplay(row['Dezavantajlı Grup']);
+                const key = `${ilce}|${grup}`;
+                igToplamSorun.set(key, (igToplamSorun.get(key) || 0) + 1);
+            });
+
+            // Sonra İlçe+DG+Sorun bazında sayı ve dağılım hesapla
+            const igsSayiMap = new Map();
+            r.dezavantajliSorunRows.forEach(row => {
+                const ilce = normDisplay(row['İlçe']);
+                const grup = normDisplay(row['Dezavantajlı Grup']);
+                const sorun = normDisplay(row['Sosyal Sorun']);
+                const key = `${ilce}|${grup}|${sorun}`;
+                igsSayiMap.set(key, (igsSayiMap.get(key) || 0) + 1);
+            });
+
+            // Map'e dağılımları ekle
+            igsSayiMap.forEach((sayi, key) => {
+                const parts = key.split('|');
+                const ilce = parts[0], grup = parts[1], sorun = parts[2];
+                const igKey = `${ilce}|${grup}`;
+                const toplam = igToplamSorun.get(igKey) || 1;
+                const dagilim = (sayi / toplam) * 100;
+
+                if (!sorunDagilimMap.has(igKey)) sorunDagilimMap.set(igKey, []);
+                sorunDagilimMap.get(igKey).push({ sorun, dagilim });
+            });
+
+            // İlçe Normalize Map oluştur (Bolgesel Sayım Pivot'tan)
+            const bolgeselSayimData = createBolgeselSayimPivot(r.bolgeselRows);
+            const ilceNormalizeMap = new Map();
+            for (let i = 1; i < bolgeselSayimData.length; i++) {
+                const row = bolgeselSayimData[i];
+                const ilce = (row[0] || '').toString().trim().toLocaleUpperCase('tr-TR');
+                const normalizeValue = row[8]; // Normalize (0-1) sütunu - index 8
+                ilceNormalizeMap.set(ilce, normalizeValue);
+            }
+
+            // Pivot verilerini oluştur
+            const mahallePivotData = createMahallePivot(r.mahalleRows, altGrupKatsayiMap, ilceNormalizeMap);
+            const dezavantajliMahPivotData = createDezavantajliMahallePivot(r.dezavantajliMahalleRows, sorunDagilimMap, ilceNormalizeMap);
+            const dezavantajliSorunPivotData = createDezavantajliSorunPivot(r.dezavantajliSorunRows, null);
+
+            // Risk Analizi sayfası oluştur
+            const riskAnaliziData = createRiskAnalizi(mahallePivotData, dezavantajliMahPivotData, dezavantajliSorunPivotData);
+
+            // 1. Mahalle Pivotları (en önemli - başa)
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(mahallePivotData), 'Mahalle_Pivot');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dezavantajliMahPivotData), 'Dezavantajli_Mah_Pivot');
+
+            // 2. Risk Analizi
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(riskAnaliziData), 'Risk_Analizi');
+
+            // 3. Diğer Pivotlar
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(createBolgeselPivot(r.bolgeselRows)), 'Bolgesel_Pivot');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(createBolgeselSayimPivot(r.bolgeselRows)), 'Bolgesel_Sayim_Pivot');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sosyalPivotData), 'Sosyal_Pivot');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(createEvhanimlariPivot(r.evhanimlariRows)), 'Evhanimlari_Pivot');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(createMahallePivot(r.evhanimlariMahalleRows, null)), 'Evhanimlari_Mah_Pivot');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dezavantajliSorunPivotData), 'Dezavantajli_Sorun_Pivot');
+            return wb;
+        }
+
+        // =============================================================================
+        // RISK ANALİZİ FUNCTION
+        // =============================================================================
+
+        function createRiskAnalizi(mahallePivot, dezavantajliMahPivot, dezavantajliSorunPivot) {
+            // T1: Mahalle_Pivot'tan İlçe+Mahalle+Üst Grup+Alt Grup → Normalize SES Bölgesel Katsayı (sütun 13, index 12)
+            const t1Map = new Map();
+            for (let i = 1; i < mahallePivot.length; i++) {
+                const row = mahallePivot[i];
+                const ilce = row[0], mahalle = row[1], ustGrup = row[2], altGrup = row[3];
+                const normalizeSesBolgesel = parseFloat((row[12] || '0').toString().replace(',', '.')) || 0;
+                const key = `${ilce}|${mahalle}|${ustGrup}|${altGrup}`;
+                t1Map.set(key, normalizeSesBolgesel);
+            }
+
+            // T2: Dezavantajli_Mah_Pivot'tan İlçe+Mahalle+Dezavantajlı Grup → Normalize SES Bölgesel DG Katsayısı (sütun 12, index 11)
+            const t2Map = new Map();
+            for (let i = 1; i < dezavantajliMahPivot.length; i++) {
+                const row = dezavantajliMahPivot[i];
+                const ilce = row[0], mahalle = row[1], dgGrup = row[2];
+                const normalizeSesBolgeselDG = parseFloat((row[11] || '0').toString().replace(',', '.')) || 0;
+                const key = `${ilce}|${mahalle}|${dgGrup}`;
+                t2Map.set(key, normalizeSesBolgeselDG);
+            }
+
+            // T3: Dezavantajli_Sorun_Pivot'tan İlçe+Sosyal Sorun+Dezavantajlı Grup → Grup Oranı (sütun 6)
+            const t3Map = new Map();
+            for (let i = 1; i < dezavantajliSorunPivot.length; i++) {
+                const row = dezavantajliSorunPivot[i];
+                const ilce = row[0], sorun = row[1], dgGrup = row[2];
+                const grupOrani = parseFloat((row[5] || '0').toString().replace(',', '.')) || 0;
+                const key = `${ilce}|${sorun}|${dgGrup}`;
+                t3Map.set(key, grupOrani);
+            }
+
+            // Risk analizi verisi oluştur
+            const data = [['İlçe', 'Mahalle', 'Dezavantajlı Grup', 'Sosyal Sorun (Üst Grup)', 'Sosyal Sorun (Alt Grup)', 'Normalize SES Bölgesel (T1)', 'Normalize SES Bölgesel DG (T2)', 'İlçe Grup-Sorun Oranı (T3)', 'NİHAİ RİSK SKORU']];
+
+            // Tüm kombinasyonları oluştur
+            const riskRows = [];
+
+            // Mahalle_Pivot'tan mahalle + üst/alt grup kombinasyonları
+            for (let i = 1; i < mahallePivot.length; i++) {
+                const mpRow = mahallePivot[i];
+                const ilce = mpRow[0], mahalle = mpRow[1], ustGrup = mpRow[2], altGrup = mpRow[3];
+                const t1Key = `${ilce}|${mahalle}|${ustGrup}|${altGrup}`;
+                const t1 = t1Map.get(t1Key) || 0;
+
+                // Bu mahalle için Dezavantajli_Mah_Pivot'tan dezavantajlı grupları bul
+                for (let j = 1; j < dezavantajliMahPivot.length; j++) {
+                    const dmRow = dezavantajliMahPivot[j];
+                    if (dmRow[0] === ilce && dmRow[1] === mahalle) {
+                        const dgGrup = dmRow[2];
+                        const t2Key = `${ilce}|${mahalle}|${dgGrup}`;
+                        const t2 = t2Map.get(t2Key) || 0;
+
+                        // Dezavantajli_Sorun_Pivot'tan ilgili sorun oranını bul
+                        // Üst Grup = Sosyal Sorun olarak eşleştir
+                        const t3Key = `${ilce}|${ustGrup}|${dgGrup}`;
+                        const t3 = t3Map.get(t3Key) || 0;
+
+                        // Nihai Risk Skoru = T1 × T2 × T3
+                        const nihaiRisk = t1 * t2 * t3;
+
+                        if (nihaiRisk > 0) {
+                            riskRows.push({
+                                ilce,
+                                mahalle,
+                                dgGrup,
+                                ustGrup,
+                                altGrup,
+                                t1,
+                                t2,
+                                t3,
+                                nihaiRisk
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Min/Max bul ve normalize et
+            let minRisk = Infinity, maxRisk = -Infinity;
+            riskRows.forEach(r => {
+                if (r.nihaiRisk > 0) {
+                    if (r.nihaiRisk < minRisk) minRisk = r.nihaiRisk;
+                    if (r.nihaiRisk > maxRisk) maxRisk = r.nihaiRisk;
+                }
+            });
+
+            // Sırala ve veriyi oluştur
+            riskRows
+                .sort((a, b) => b.nihaiRisk - a.nihaiRisk) // En yüksek risk önce
+                .forEach(r => {
+                    // 0-1 arası normalize et
+                    let normalizedRisk = 0;
+                    if (maxRisk > minRisk && r.nihaiRisk > 0) {
+                        normalizedRisk = (r.nihaiRisk - minRisk) / (maxRisk - minRisk);
+                    }
+
+                    data.push([
+                        r.ilce,
+                        r.mahalle,
+                        r.dgGrup,
+                        r.ustGrup,
+                        r.altGrup,
+                        r.t1.toFixed(4).replace('.', ','),
+                        r.t2.toFixed(4).replace('.', ','),
+                        r.t3.toFixed(4).replace('.', ','),
+                        normalizedRisk.toFixed(4).replace('.', ',')
+                    ]);
+                });
+
+            return data;
+        }
+
+        // =============================================================================
+        // UI HANDLING
+        // =============================================================================
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('status');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusMessage = document.getElementById('statusMessage');
+        const btnGroup = document.getElementById('btnGroup');
+        const downloadRawBtn = document.getElementById('downloadRawBtn');
+        const downloadPivotBtn = document.getElementById('downloadPivotBtn');
+
+        let rawWorkbook = null, pivotWorkbook = null;
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+        fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+        downloadRawBtn.addEventListener('click', () => { if (rawWorkbook) XLSX.writeFile(rawWorkbook, 'gorusme_duzenli.xlsx'); });
+        downloadPivotBtn.addEventListener('click', () => { if (pivotWorkbook) XLSX.writeFile(pivotWorkbook, 'gorusme_pivot.xlsx'); });
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.csv')) { showError('Lütfen bir CSV dosyası yükleyin'); return; }
+            showProcessing();
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    const result = processCSV(e.target.result);
+
+                    // --- Deduplikasyon: Aktör ID'ye göre en güncel kaydı tut ---
+                    const actorMap = new Map();
+                    const noIdRows = [];
+
+                    result.summaryRows.forEach(row => {
+                        const actorId = (row['Aktör ID'] || '').toString().trim();
+                        // ID yoksa direkt ekle
+                        if (!actorId) {
+                            noIdRows.push(row);
+                            return;
+                        }
+
+                        // Tarihi karşılaştırılabilir sayıya çevir
+                        let ts = -1;
+                        const d = row['Tarih'];
+                        if (typeof d === 'number') {
+                            ts = d; // Excel Serial
+                        } else if (typeof d === 'string') {
+                            // DD.MM.YYYY formatı
+                            const parts = d.split('.');
+                            if (parts.length === 3) {
+                                ts = new Date(parts[2], parts[1] - 1, parts[0]).getTime();
+                            }
+                        }
+
+                        // Karşılaştırma ve Ekleme
+                        if (!actorMap.has(actorId)) {
+                            actorMap.set(actorId, { row: row, ts: ts });
+                        } else {
+                            // Mevcut kayıttan daha yeniyse güncelle
+                            if (ts > actorMap.get(actorId).ts) {
+                                actorMap.set(actorId, { row: row, ts: ts });
+                            }
+                        }
+                    });
+
+                    // Listeyi güncelle
+                    result.summaryRows = [...noIdRows, ...Array.from(actorMap.values()).map(x => x.row)];
+                    // -----------------------------------------------------------
+
+                    rawWorkbook = createRawExcel(result);
+                    pivotWorkbook = createPivotExcel(result);
+                    showSuccess();
+                } catch (err) { showError('Hata: ' + err.message); }
+            };
+            reader.onerror = () => showError('Dosya okunamadı');
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function showProcessing() {
+            status.className = 'status show';
+            statusTitle.innerHTML = '<div class="spinner"></div><span>İşleniyor...</span>';
+            statusMessage.textContent = 'CSV dosyası analiz ediliyor...';
+            btnGroup.style.display = 'none';
+        }
+
+        function showSuccess() {
+            status.className = 'status show';
+            statusTitle.innerHTML = '✓ Tamamlandı';
+            statusMessage.textContent = 'Excel dosyaları hazır.';
+            btnGroup.style.display = 'flex';
+        }
+
+        function showError(msg) {
+            status.className = 'status show';
+            statusTitle.innerHTML = '✗ Hata';
+            statusMessage.textContent = msg;
+            btnGroup.style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hizmet Bilgileri Dönüştürücü</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .container {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+        }
+
+        .drop-zone {
+            border: 2px dashed #999;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .drop-zone:hover {
+            border-color: #28a745;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .drop-zone p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #90caf9;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: 1px solid #28a745;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #28a745;
+            color: #fff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #1e7e34;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: #fff;
+            border-color: #6c757d;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #545b62;
+        }
+
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #856404;
+        }
+
+        .stats {
+            margin-top: 20px;
+            padding: 15px;
+            background: #d4edda;
+            border: 1px solid #28a745;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .stats.show {
+            display: block;
+        }
+
+        .stats p {
+            font-size: 14px;
+            color: #155724;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Hizmet Bilgileri CSV → Excel</h1>
+
+    <div class="container">
+        <div class="drop-zone" id="dropZone">
+            <p>CSV dosyasını sürükle bırak veya tıkla</p>
+            <input type="file" id="fileInput" accept=".csv">
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="stats" id="stats"></div>
+
+        <div class="buttons">
+            <button class="btn-primary" id="downloadBtn" disabled>Excel İndir (Virgüller Ayrılmış)</button>
+            <button class="btn-secondary" id="downloadBtnNoSplit" disabled>Excel İndir (Virgüller Ayrılmamış)</button>
+        </div>
+
+        <div class="info">
+            <strong>İndirme Seçenekleri:</strong><br>
+            • <strong>Virgüller Ayrılmış:</strong> "ÇOCUK, KADIN" → 2 ayrı satır<br>
+            • <strong>Virgüller Ayrılmamış:</strong> "ÇOCUK, KADIN" → tek satırda kalır
+        </div>
+    </div>
+
+    <script>
+        let processedData = null;
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('status');
+        const stats = document.getElementById('stats');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadBtnNoSplit = document.getElementById('downloadBtnNoSplit');
+
+        // Event listeners
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+        downloadBtn.addEventListener('click', downloadExcel);
+        downloadBtnNoSplit.addEventListener('click', downloadExcelNoSplit);
+
+        function showStatus(msg) {
+            status.textContent = msg;
+            status.className = 'status show';
+        }
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.csv')) {
+                showStatus('Lütfen CSV dosyası seçin!');
+                return;
+            }
+
+            showStatus('İşleniyor...');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    processedData = processCSV(e.target.result);
+                    downloadBtn.disabled = false;
+                    downloadBtnNoSplit.disabled = false;
+                    showStatus('İşlem tamamlandı! Excel indirilebilir.');
+
+                    // Show stats
+                    stats.innerHTML = `
+                        <p><strong>Toplam CSV Satırı:</strong> ${processedData.originalRowCount}</p>
+                        <p><strong>Hizmet Blok Sayısı (Tespit):</strong> ${processedData.serviceBlockCount}</p>
+                        <p><strong>Virgüller Ayrılmış Satır:</strong> ${processedData.expandedRows.length}</p>
+                        <p><strong>Virgüller Ayrılmamış Satır:</strong> ${processedData.noSplitRows.length}</p>
+                    `;
+                    stats.className = 'stats show';
+                } catch (err) {
+                    showStatus('Hata: ' + err.message);
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function processCSV(csvData) {
+            const workbook = XLSX.read(csvData, { type: 'string' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+            if (data.length < 2) throw new Error('CSV dosyası boş veya geçersiz');
+
+            const headers = data[0];
+            const rows = data.slice(1);
+            const originalRowCount = rows.length;
+
+            // Base columns (sabit)
+            const baseColNames = ['Personel Sicil No', 'Personel Ad Soyad', 'Aktör ID', 'Aktör Adı'];
+
+            // Service block columns (tekrarlayan)
+            const serviceBlockCols = [
+                'Hizmetin Adı',
+                'Hizmetin Tanımı',
+                'Hizmetin Hangi Gruplara Yönelik Olduğu',
+                'Hizmetin Türü',
+                '1 Kişi/Hane İçin Sunulan Aylık Destek Miktarı (Sayısal verilerle belirtiniz: Örneğin, 1.000 TL nakdi destek, 4 seans psikolojik destek vb.)',
+                'Destek Miktar Cinsi',
+                'Aylık Hizmet Sunulan Kişi/Hane/Adet Sayısı',
+                'Hizmetin aylık işlem cinsi',
+                'Hizmetin hangi sosyal sorunlara yönelik olduğu'
+            ];
+
+            // Column to split by comma
+            const commaColumns = ['Hizmetin Hangi Gruplara Yönelik Olduğu', 'Hizmetin hangi sosyal sorunlara yönelik olduğu'];
+
+            // Find base column indices
+            const baseIndices = {};
+            baseColNames.forEach(name => {
+                const idx = headers.indexOf(name);
+                if (idx !== -1) baseIndices[name] = idx;
+            });
+
+            // Count how many service blocks exist (based on "Hizmetin Adı" occurrences)
+            let serviceBlockCount = 0;
+            for (let i = 0; i < headers.length; i++) {
+                if (headers[i] === 'Hizmetin Adı') serviceBlockCount++;
+            }
+
+            // Find service block start indices
+            const serviceBlockStarts = [];
+            for (let i = 0; i < headers.length; i++) {
+                if (headers[i] === 'Hizmetin Adı') {
+                    serviceBlockStarts.push(i);
+                }
+            }
+
+            // Output column names (shortened for readability)
+            const outputHeaders = [
+                'Personel Sicil No',
+                'Personel Ad Soyad',
+                'Aktör ID',
+                'Aktör Adı',
+                'Hizmetin Adı',
+                'Hizmetin Tanımı',
+                'Hedef Grup',
+                'Hizmet Türü',
+                'Destek Miktarı',
+                'Miktar Cinsi',
+                'Aylık Kişi/Hane Sayısı',
+                'İşlem Cinsi',
+                'Sosyal Sorun'
+            ];
+
+            const expandedRows = [];
+
+            rows.forEach(row => {
+                // Get base data
+                const baseData = {
+                    'Personel Sicil No': row[baseIndices['Personel Sicil No']] || '',
+                    'Personel Ad Soyad': row[baseIndices['Personel Ad Soyad']] || '',
+                    'Aktör ID': row[baseIndices['Aktör ID']] || '',
+                    'Aktör Adı': row[baseIndices['Aktör Adı']] || ''
+                };
+
+                // Process each service block
+                serviceBlockStarts.forEach(startIdx => {
+                    const hizmetAdi = (row[startIdx] || '').toString().trim();
+
+                    // Skip empty service blocks
+                    if (!hizmetAdi) return;
+
+                    const serviceData = {
+                        'Hizmetin Adı': hizmetAdi,
+                        'Hizmetin Tanımı': (row[startIdx + 1] || '').toString().trim(),
+                        'Hedef Grup': (row[startIdx + 2] || '').toString().trim(),
+                        'Hizmet Türü': (row[startIdx + 3] || '').toString().trim(),
+                        'Destek Miktarı': (row[startIdx + 4] || '').toString().trim(),
+                        'Miktar Cinsi': (row[startIdx + 5] || '').toString().trim(),
+                        'Aylık Kişi/Hane Sayısı': (row[startIdx + 6] || '').toString().trim(),
+                        'İşlem Cinsi': (row[startIdx + 7] || '').toString().trim(),
+                        'Sosyal Sorun': (row[startIdx + 8] || '').toString().trim()
+                    };
+
+                    // Split comma-separated values
+                    const hedefGruplar = serviceData['Hedef Grup'].split(',').map(s => s.trim()).filter(s => s);
+                    const sosyalSorunlar = serviceData['Sosyal Sorun'].split(',').map(s => s.trim()).filter(s => s);
+
+                    // If no values, use empty string
+                    if (hedefGruplar.length === 0) hedefGruplar.push('');
+                    if (sosyalSorunlar.length === 0) sosyalSorunlar.push('');
+
+                    // Create row for each combination
+                    hedefGruplar.forEach(hedefGrup => {
+                        sosyalSorunlar.forEach(sosyalSorun => {
+                            expandedRows.push({
+                                'Personel Sicil No': baseData['Personel Sicil No'],
+                                'Personel Ad Soyad': baseData['Personel Ad Soyad'],
+                                'Aktör ID': baseData['Aktör ID'],
+                                'Aktör Adı': baseData['Aktör Adı'],
+                                'Hizmetin Adı': serviceData['Hizmetin Adı'],
+                                'Hizmetin Tanımı': serviceData['Hizmetin Tanımı'],
+                                'Hedef Grup': hedefGrup,
+                                'Hizmet Türü': serviceData['Hizmet Türü'],
+                                'Destek Miktarı': serviceData['Destek Miktarı'],
+                                'Miktar Cinsi': serviceData['Miktar Cinsi'],
+                                'Aylık Kişi/Hane Sayısı': serviceData['Aylık Kişi/Hane Sayısı'],
+                                'İşlem Cinsi': serviceData['İşlem Cinsi'],
+                                'Sosyal Sorun': sosyalSorun
+                            });
+                        });
+                    });
+                });
+            });
+
+            // Also create non-split version
+            const noSplitRows = [];
+            rows.forEach(row => {
+                const baseData = {
+                    'Personel Sicil No': row[baseIndices['Personel Sicil No']] || '',
+                    'Personel Ad Soyad': row[baseIndices['Personel Ad Soyad']] || '',
+                    'Aktör ID': row[baseIndices['Aktör ID']] || '',
+                    'Aktör Adı': row[baseIndices['Aktör Adı']] || ''
+                };
+
+                serviceBlockStarts.forEach(startIdx => {
+                    const hizmetAdi = (row[startIdx] || '').toString().trim();
+                    if (!hizmetAdi) return;
+
+                    noSplitRows.push({
+                        'Personel Sicil No': baseData['Personel Sicil No'],
+                        'Personel Ad Soyad': baseData['Personel Ad Soyad'],
+                        'Aktör ID': baseData['Aktör ID'],
+                        'Aktör Adı': baseData['Aktör Adı'],
+                        'Hizmetin Adı': hizmetAdi,
+                        'Hizmetin Tanımı': (row[startIdx + 1] || '').toString().trim(),
+                        'Hedef Grup': (row[startIdx + 2] || '').toString().trim(),
+                        'Hizmet Türü': (row[startIdx + 3] || '').toString().trim(),
+                        'Destek Miktarı': (row[startIdx + 4] || '').toString().trim(),
+                        'Miktar Cinsi': (row[startIdx + 5] || '').toString().trim(),
+                        'Aylık Kişi/Hane Sayısı': (row[startIdx + 6] || '').toString().trim(),
+                        'İşlem Cinsi': (row[startIdx + 7] || '').toString().trim(),
+                        'Sosyal Sorun': (row[startIdx + 8] || '').toString().trim()
+                    });
+                });
+            });
+
+            return {
+                expandedRows,
+                noSplitRows,
+                outputHeaders,
+                originalRowCount,
+                serviceBlockCount
+            };
+        }
+
+        function downloadExcel() {
+            if (!processedData) return;
+
+            const wb = XLSX.utils.book_new();
+
+            // Create data array
+            const data = [
+                processedData.outputHeaders,
+                ...processedData.expandedRows.map(r => processedData.outputHeaders.map(h => r[h]))
+            ];
+
+            // Create sheet
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'Hizmet_Bilgileri');
+
+            // Download
+            const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            XLSX.writeFile(wb, `hizmet_bilgileri_ayrilmis_${timestamp}.xlsx`);
+        }
+
+        function downloadExcelNoSplit() {
+            if (!processedData) return;
+
+            const wb = XLSX.utils.book_new();
+
+            // Create data array (no split version)
+            const data = [
+                processedData.outputHeaders,
+                ...processedData.noSplitRows.map(r => processedData.outputHeaders.map(h => r[h]))
+            ];
+
+            // Create sheet
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'Hizmet_Bilgileri');
+
+            // Download
+            const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            XLSX.writeFile(wb, `hizmet_bilgileri_ayrilmamis_${timestamp}.xlsx`);
+        }
+    </script>
+</body>
+
+</html>
