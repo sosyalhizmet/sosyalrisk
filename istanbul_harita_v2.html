@@ -1,0 +1,1936 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İstanbul Sosyal Haritası</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #map {
+            flex: 1;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            background: #fff;
+            padding: 16px;
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.06);
+            overflow-y: auto;
+            border-left: 1px solid rgba(0, 0, 0, 0.04);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Data Source Toggle */
+        .data-toggle {
+            display: flex;
+            background: #f8f9fc;
+            border-radius: 20px;
+            padding: 3px;
+            margin-bottom: 16px;
+            border: 1px solid #eef0f6;
+        }
+
+        .data-toggle button {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 17px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #8b95a5;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .data-toggle button:hover:not(.active) {
+            color: #5a6473;
+        }
+
+        .data-toggle button.active {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(45, 55, 72, 0.25);
+        }
+
+        /* Context Info Box */
+        .context-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+
+        .context-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .context-subtitle {
+            font-size: 11px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .context-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 11px;
+        }
+
+        .context-stat {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .context-stat-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .context-stat-label {
+            opacity: 0.8;
+            font-size: 10px;
+        }
+
+        /* Back Button */
+        .back-btn {
+            display: none;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 12px;
+            background: #f8f9fc;
+            border: 1px solid #e8eaef;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #5a6473;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: #eef0f6;
+            border-color: #2d3748;
+            color: #2d3748;
+        }
+
+        .back-btn.visible {
+            display: block;
+        }
+
+        /* View Toggle Button */
+        .view-toggle-btn {
+            position: absolute;
+            top: 10px;
+            right: 320px;
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .view-toggle-btn:hover {
+            background: #f0f0f0;
+            transform: scale(1.05);
+        }
+
+        .view-toggle-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .view-toggle-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 14px;
+        }
+
+        .section h3 {
+            font-size: 10px;
+            font-weight: 600;
+            color: #a0aab8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Legend Items */
+        .legend-item {
+            display: flex;
+            align-items: center;
+            padding: 5px 8px;
+            margin-bottom: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .legend-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: var(--progress, 0%);
+            background: linear-gradient(90deg, rgba(45, 55, 72, 0.08) 0%, rgba(45, 55, 72, 0.02) 100%);
+        }
+
+        .legend-item:hover {
+            background: #f8f9fc;
+        }
+
+        .legend-item.active {
+            background: linear-gradient(135deg, rgba(45, 55, 72, 0.1) 0%, rgba(45, 55, 72, 0.05) 100%);
+            box-shadow: inset 0 0 0 1px rgba(45, 55, 72, 0.2);
+        }
+
+        .legend-color {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .legend-label {
+            flex: 1;
+            font-size: 11px;
+            font-weight: 450;
+            color: #3d4852;
+            position: relative;
+            z-index: 1;
+        }
+
+        .legend-value {
+            font-size: 13px;
+            color: #1a202c;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Alt Grup Section */
+        .alt-grup-section {
+            display: none;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+
+        .alt-grup-section.visible {
+            display: block;
+        }
+
+        /* Sosyal Sorunlar Section (DG modunda) */
+        .sorun-section,
+        .sorun-alt-section {
+            display: none;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+
+        .sorun-section.visible,
+        .sorun-alt-section.visible {
+            display: block;
+        }
+
+        /* Color Scale */
+        .color-scale {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid #eee;
+        }
+
+        .scale-bar {
+            height: 10px;
+            border-radius: 5px;
+            background: linear-gradient(to right, #e8eaf6, #5c6bc0, #1a237e);
+            margin-bottom: 4px;
+        }
+
+        .scale-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #888;
+        }
+
+        /* Loading */
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1001;
+            background: #fff;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+            font-size: 14px;
+        }
+
+        /* Tooltip */
+        .leaflet-tooltip {
+            background: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .tooltip-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: #1a1a1a;
+        }
+
+        .tooltip-subtitle {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .tooltip-value {
+            font-size: 13px;
+            color: #5c6bc0;
+            font-weight: 500;
+        }
+
+        /* Labels */
+        .ilce-label,
+        .mahalle-label {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .ilce-label div {
+            font-weight: 500;
+            font-size: 10px;
+            color: #333;
+            text-shadow: 1px 1px 2px white, -1px -1px 2px white, 1px -1px 2px white, -1px 1px 2px white;
+            white-space: nowrap;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .mahalle-label div {
+            font-weight: 400;
+            font-size: 8px;
+            color: #444;
+            text-shadow: 1px 1px 1px white, -1px -1px 1px white;
+            white-space: nowrap;
+            text-align: center;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div id="map">
+            <!-- Tam Ekran Butonu -->
+            <button class="view-toggle-btn" id="fullscreenBtn" title="Tam ekran" style="right: 10px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+                    </path>
+                </svg>
+            </button>
+
+            <!-- Mahalle Toggle Butonu -->
+            <button class="view-toggle-btn" id="viewToggleBtn" title="Mahalle görünümü" style="top: 60px; right: 10px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                </svg>
+            </button>
+
+            <!-- Sidebar Toggle Butonu -->
+            <button class="view-toggle-btn active" id="sidebarToggleBtn" title="Paneli göster"
+                style="top: 110px; right: 10px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="15" y1="3" x2="15" y2="21"></line>
+                </svg>
+            </button>
+        </div>
+
+        <div class="sidebar hidden" id="sidebar">
+            <!-- Veri Kaynağı Toggle -->
+            <div class="data-toggle">
+                <button class="active" data-source="sosyal">Sosyal Sorunlar</button>
+                <button data-source="dezavantajli">Dezavantajlı Gruplar</button>
+            </div>
+
+            <!-- Geri Butonu -->
+            <button class="back-btn" id="backBtn">← İstanbul Geneli</button>
+
+            <!-- Bağlam Kutusu -->
+            <div class="context-box" id="contextBox">
+                <div class="context-title" id="contextTitle">İSTANBUL GENELİ</div>
+                <div class="context-subtitle" id="contextSubtitle">Tüm İstanbul verisi</div>
+                <div class="context-stats" id="contextStats"></div>
+            </div>
+
+            <!-- Grup Listesi -->
+            <div class="section">
+                <h3 id="grupSectionTitle">Üst Gruplar</h3>
+                <div id="grupLegend"></div>
+            </div>
+
+            <!-- Alt Gruplar (Sosyal mod için) -->
+            <div class="alt-grup-section" id="altGrupSection">
+                <h3>Alt Gruplar</h3>
+                <div id="altGrupLegend"></div>
+            </div>
+
+            <!-- Sosyal Sorunlar (DG modunda grup seçilince) -->
+            <div class="sorun-section" id="sorunSection">
+                <h3 id="sorunSectionTitle">Sosyal Sorunlar</h3>
+                <div id="sorunLegend"></div>
+            </div>
+
+            <!-- Sosyal Sorun Alt Grupları -->
+            <div class="sorun-alt-section" id="sorunAltSection">
+                <h3 id="sorunAltTitle">Alt Sorunlar</h3>
+                <div id="sorunAltLegend"></div>
+            </div>
+
+            <!-- Renk Skalası -->
+            <div class="color-scale">
+                <div class="section">
+                    <h3>Katsayı Skalası</h3>
+                </div>
+                <div class="scale-bar"></div>
+                <div class="scale-labels">
+                    <span>Düşük</span>
+                    <span>Yüksek</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">Veri yükleniyor...</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // ============================================
+        // CONFIG
+        // ============================================
+        const CONFIG = {
+            excelPath: 'veri/veri.xlsx',
+            nufusPath: 'mahalle_nufus.xlsx',
+            sosyalSheet: 'GG_Mahalle_Pivot',
+            dgSheet: 'GG_Dezavantajli_Mah_Pivo',
+            riskSheet: 'GG_Risk_Analizi',
+            mahalleLabelMinZoom: 13,
+            colors: ['#e8eaf6', '#c5cae9', '#9fa8da', '#7986cb', '#5c6bc0', '#3f51b5', '#303f9f', '#1a237e']
+        };
+
+        const GRUP_COLORS = {
+            // Sosyal Üst Gruplar
+            'BAĞIMLILIK': '#7986cb', 'ÇALIŞMA HAYATI': '#5c6bc0', 'EĞİTİM': '#3f51b5',
+            'GÜVENLİK': '#303f9f', 'BARINMA': '#9fa8da', 'ŞİDDET': '#c5cae9',
+            'AYRIMCILIK': '#1a237e', 'BAKIM': '#8c9eff',
+            // Dezavantajlı Gruplar
+            'COCUK': '#ef5350', 'ENGELLI': '#ab47bc', 'EVSIZ': '#5c6bc0',
+            'GENC': '#29b6f6', 'GENEL': '#66bb6a', 'GOCMEN': '#ffa726',
+            'KADIN': '#ec407a', 'LGBTI+': '#7e57c2', 'ROMAN': '#8d6e63', 'YASLI': '#78909c'
+        };
+
+        // ============================================
+        // STATE
+        // ============================================
+        const state = {
+            dataSource: 'sosyal',      // 'sosyal' | 'dezavantajli'
+            viewMode: 'istanbul',      // 'istanbul' | 'ilce' | 'mahalle'
+            showAllMahalle: false,     // Tüm mahalleleri göster toggle
+            selectedIlce: null,
+            selectedIlceName: null,
+            selectedMahalle: null,
+            selectedMahalleName: null,
+            selectedGrup: null,        // Sosyal modda: Üst grup, DG modda: DG
+            selectedAltGrup: null,     // Sosyal modda: Alt grup
+            selectedUstGrup: null,     // DG modda: Sosyal sorun üst grup
+            currentMahalleLabelMinZoom: 13  // İlçe boyutuna göre dinamik
+        };
+
+        // ============================================
+        // DATA STORAGE
+        // ============================================
+        let sosyalRaw = [], dgRaw = [], riskRaw = [];
+        let sosyalMahalle = {}, dgMahalle = {};
+        let sosyalIlce = {}, dgIlce = {};
+        let globalMax = 0.001, globalMin = 999;
+        let ilceMax = 0.001, ilceMin = 999;
+
+        // Nüfus verileri
+        let mahalleNufus = {};  // key: "ILCE MAHALLE" -> nufus
+        let ilceNufus = {};     // key: ilceKey -> toplam nufus
+
+        // ============================================
+        // MAP SETUP
+        // ============================================
+        const map = L.map('map', {
+            center: [41.35, 28.9784],
+            zoom: 12,
+            zoomControl: false,
+            attributionControl: false
+        });
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(map);
+
+        let ilceLayer = null, mahalleLayer = null;
+        let ilceLabels = null, mahalleLabels = null;
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        function normalizeTr(str) {
+            return (str || '').toUpperCase()
+                .replace(/İ/g, 'I').replace(/Ş/g, 'S').replace(/Ğ/g, 'G')
+                .replace(/Ü/g, 'U').replace(/Ö/g, 'O').replace(/Ç/g, 'C')
+                .replace(/ı/g, 'I').replace(/i/g, 'I')
+                .replace(/ş/g, 'S').replace(/ğ/g, 'G').replace(/ü/g, 'U')
+                .replace(/ö/g, 'O').replace(/ç/g, 'C')
+                .replace(/[^A-Z0-9]/g, '');
+        }
+
+        function getColor(value, max, min = 0) {
+            if (!value || value <= 0) return '#f5f5f5';
+            const range = max - min;
+            const ratio = range > 0 ? Math.min((value - min) / range, 1) : 0;
+            return CONFIG.colors[Math.floor(ratio * (CONFIG.colors.length - 1))];
+        }
+
+        function formatNumber(n) {
+            return (n || 0).toFixed(4);
+        }
+
+        function capitalize(str) {
+            return str.charAt(0) + str.slice(1).toLowerCase();
+        }
+
+        // ============================================
+        // DATA GETTERS (Based on current state)
+        // ============================================
+        function getMahalleData() {
+            return state.dataSource === 'sosyal' ? sosyalMahalle : dgMahalle;
+        }
+
+        function getIlceData() {
+            return state.dataSource === 'sosyal' ? sosyalIlce : dgIlce;
+        }
+
+        function getRawData() {
+            return state.dataSource === 'sosyal' ? sosyalRaw : dgRaw;
+        }
+
+        function getMahalleValue(data, key) {
+            if (!data) return 0;
+
+            let katsayi = 0;
+            if (state.dataSource === 'sosyal') {
+                if (state.selectedAltGrup) katsayi = data.altGruplar?.[state.selectedAltGrup] || 0;
+                else if (state.selectedGrup) katsayi = data.ustGruplar?.[state.selectedGrup] || 0;
+                else katsayi = data.toplam || 0;
+            } else {
+                if (state.selectedGrup) katsayi = data.gruplar?.[state.selectedGrup] || 0;
+                else katsayi = data.toplam || 0;
+            }
+
+            // 4. kök normalizasyonu: toplam / ⁴√nüfus (nüfus etkisi %25)
+            if (key && mahalleNufus[key]) {
+                const nufus = Math.max(mahalleNufus[key], 1000);  // Minimum 1000 eşiği
+                return katsayi / Math.pow(nufus, 0.25) * 10;
+            }
+
+            // Nüfus verisi yoksa ham değer döndür
+            return katsayi;
+        }
+
+        // ============================================
+        // DATA LOADING & PROCESSING
+        // ============================================
+        async function loadData() {
+            try {
+                const response = await fetch(CONFIG.excelPath);
+                const buffer = await response.arrayBuffer();
+                const workbook = XLSX.read(buffer, { type: 'array' });
+
+                // Sosyal
+                const sosyalSheet = workbook.Sheets[CONFIG.sosyalSheet];
+                if (sosyalSheet) sosyalRaw = XLSX.utils.sheet_to_json(sosyalSheet);
+
+                // Dezavantajlı
+                const dgSheet = workbook.Sheets[CONFIG.dgSheet];
+                if (dgSheet) dgRaw = XLSX.utils.sheet_to_json(dgSheet);
+
+                // Risk Analizi
+                const riskSheet = workbook.Sheets[CONFIG.riskSheet];
+                if (riskSheet) riskRaw = XLSX.utils.sheet_to_json(riskSheet);
+
+                // Nüfus dosyasını yükle
+                await loadNufusData();
+
+                processSosyalData();
+                processDGData();
+                calculateGlobalMinMax();
+
+                await loadGeoJSON();
+                document.getElementById('loading').style.display = 'none';
+
+                renderSidebar();
+            } catch (err) {
+                console.error('Veri yüklenemedi:', err);
+                document.getElementById('loading').textContent = 'Hata: ' + err.message;
+            }
+        }
+
+        // Nüfus verilerini yükle
+        async function loadNufusData() {
+            try {
+                const response = await fetch(CONFIG.nufusPath);
+                const buffer = await response.arrayBuffer();
+                const workbook = XLSX.read(buffer, { type: 'array' });
+
+                // İlk sheet'i al
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const data = XLSX.utils.sheet_to_json(sheet);
+
+                mahalleNufus = {};
+                ilceNufus = {};
+
+                // Harita İlçe-Mahalle sütunuyla doğrudan eşleştirme
+                data.forEach(row => {
+                    const ilce = (row['İlçe'] || row['Ilce'] || '').toString().trim();
+                    const haritaKey = (row['Harita İlçe-Mahalle'] || row['Harita Ilce-Mahalle'] || '').toString().trim();
+                    let nufusStr = (row['Nüfus'] || row['Nufus'] || 0).toString().replace(/,/g, '').replace(/\./g, '');
+                    const nufus = parseInt(nufusStr) || 0;
+
+                    if (!haritaKey || nufus <= 0) return;
+
+                    // 1. Doğrudan key (birebir eşleşme için)
+                    if (!mahalleNufus[haritaKey] || mahalleNufus[haritaKey] < nufus) {
+                        mahalleNufus[haritaKey] = nufus;
+                    }
+
+                    // 2. Normalize key (fallback için)
+                    const normalizedKey = normalizeTr(haritaKey);
+                    if (!mahalleNufus[normalizedKey] || mahalleNufus[normalizedKey] < nufus) {
+                        mahalleNufus[normalizedKey] = nufus;
+                    }
+
+                    // İlçe nüfusunu topla
+                    const ilceKey = normalizeTr(ilce);
+                    if (!ilceNufus[ilceKey]) ilceNufus[ilceKey] = 0;
+                    ilceNufus[ilceKey] += nufus;
+                });
+
+                console.log('Nüfus verileri yüklendi:', Object.keys(mahalleNufus).length / 2, 'mahalle (doğrudan + normalize)');
+                console.log('İlçe nüfusları:', ilceNufus);
+            } catch (err) {
+                console.warn('Nüfus verisi yüklenemedi, varsayılan hesaplama kullanılacak:', err);
+            }
+        }
+
+        function processSosyalData() {
+            sosyalMahalle = {};
+            sosyalIlce = {};
+
+            sosyalRaw.forEach(row => {
+                const mahalle = (row['Mahalle'] || '').toString().trim().toUpperCase();
+                const ilce = (row['İlçe'] || row['Ilce'] || '').toString().trim();
+                const ustGrup = (row['Üst Grup'] || row['Ust Grup'] || '').toString().trim().toUpperCase();
+                const altGrup = (row['Alt Grup'] || '').toString().trim().toUpperCase();
+                let katsayi = row['Normalize SES Bölgesel Katsayı'] || row['Normalize SES Bolgesel Katsayi'] || 0;
+                if (typeof katsayi === 'string') katsayi = parseFloat(katsayi.replace(',', '.')) || 0;
+
+                if (!mahalle) return;
+
+                const key = normalizeTr(ilce + ' ' + mahalle);
+                const ilceKey = normalizeTr(ilce);
+
+                // Mahalle
+                if (!sosyalMahalle[key]) {
+                    sosyalMahalle[key] = { ilce, mahalle, ilceKey, toplam: 0, ustGruplar: {}, altGruplar: {} };
+                }
+                sosyalMahalle[key].toplam += katsayi;
+                sosyalMahalle[key].ustGruplar[ustGrup] = (sosyalMahalle[key].ustGruplar[ustGrup] || 0) + katsayi;
+                sosyalMahalle[key].altGruplar[altGrup] = (sosyalMahalle[key].altGruplar[altGrup] || 0) + katsayi;
+
+                // İlçe
+                if (!sosyalIlce[ilceKey]) {
+                    sosyalIlce[ilceKey] = { ilce, toplam: 0, mahalleSet: new Set(), ustGruplar: {} };
+                }
+                sosyalIlce[ilceKey].toplam += katsayi;
+                sosyalIlce[ilceKey].mahalleSet.add(key);
+                sosyalIlce[ilceKey].ustGruplar[ustGrup] = (sosyalIlce[ilceKey].ustGruplar[ustGrup] || 0) + katsayi;
+            });
+
+            // Ortalama hesapla
+            Object.values(sosyalIlce).forEach(d => {
+                d.mahalleSayisi = d.mahalleSet.size;
+                d.ortalama = d.mahalleSayisi > 0 ? d.toplam / d.mahalleSayisi : 0;
+            });
+
+            console.log('Sosyal işlendi:', Object.keys(sosyalMahalle).length, 'mahalle');
+        }
+
+        function processDGData() {
+            dgMahalle = {};
+            dgIlce = {};
+
+            dgRaw.forEach(row => {
+                const mahalle = (row['Mahalle'] || '').toString().trim().toUpperCase();
+                const ilce = (row['İlçe'] || row['Ilce'] || '').toString().trim();
+                let grup = (row['Dezavantajlı Grup'] || '').toString().trim().toUpperCase();
+                grup = normalizeTr(grup);
+                let katsayi = row['Normalize SES Bölgesel DG Katsayısı'] || row['Normalize SES Bolgesel DG Katsayisi'] || 0;
+                if (typeof katsayi === 'string') katsayi = parseFloat(katsayi.replace(',', '.')) || 0;
+
+                if (!mahalle) return;
+
+                const key = normalizeTr(ilce + ' ' + mahalle);
+                const ilceKey = normalizeTr(ilce);
+
+                // Mahalle
+                if (!dgMahalle[key]) {
+                    dgMahalle[key] = { ilce, mahalle, ilceKey, toplam: 0, gruplar: {} };
+                }
+                dgMahalle[key].toplam += katsayi;
+                dgMahalle[key].gruplar[grup] = (dgMahalle[key].gruplar[grup] || 0) + katsayi;
+
+                // İlçe
+                if (!dgIlce[ilceKey]) {
+                    dgIlce[ilceKey] = { ilce, toplam: 0, mahalleSet: new Set(), gruplar: {} };
+                }
+                dgIlce[ilceKey].toplam += katsayi;
+                dgIlce[ilceKey].mahalleSet.add(key);
+                dgIlce[ilceKey].gruplar[grup] = (dgIlce[ilceKey].gruplar[grup] || 0) + katsayi;
+            });
+
+            Object.values(dgIlce).forEach(d => {
+                d.mahalleSayisi = d.mahalleSet.size;
+                d.ortalama = d.mahalleSayisi > 0 ? d.toplam / d.mahalleSayisi : 0;
+            });
+
+            console.log('DG işlendi:', Object.keys(dgMahalle).length, 'mahalle');
+        }
+
+        function calculateGlobalMinMax() {
+            // Mahalle global (sosyal)
+            globalMax = 0.001; globalMin = 999;
+            Object.values(sosyalMahalle).forEach(d => {
+                if (d.toplam > globalMax) globalMax = d.toplam;
+                if (d.toplam > 0 && d.toplam < globalMin) globalMin = d.toplam;
+            });
+            if (globalMin === 999) globalMin = 0;
+
+            // İlçe
+            ilceMax = 0.001; ilceMin = 999;
+            Object.values(sosyalIlce).forEach(d => {
+                if (d.ortalama > ilceMax) ilceMax = d.ortalama;
+                if (d.ortalama > 0 && d.ortalama < ilceMin) ilceMin = d.ortalama;
+            });
+            if (ilceMin === 999) ilceMin = 0;
+        }
+
+        function recalculateMinMax() {
+            const mahalleData = getMahalleData();
+            const ilceData = getIlceData();
+
+            globalMax = 0.001; globalMin = 999;
+            Object.entries(mahalleData).forEach(([key, d]) => {
+                const v = getMahalleValue(d, key);
+                if (v > globalMax) globalMax = v;
+                if (v > 0 && v < globalMin) globalMin = v;
+            });
+            if (globalMin === 999) globalMin = 0;
+
+            // İlçe min/max - seçili grup varsa o gruba göre hesapla
+            ilceMax = 0.001; ilceMin = 999;
+            Object.values(ilceData).forEach(d => {
+                let ilceValue = d.ortalama || 0;
+
+                // Seçili grup varsa o grubun ortalamasını hesapla
+                if (state.selectedGrup) {
+                    if (state.dataSource === 'sosyal' && d.ustGruplar) {
+                        const grupTotal = d.ustGruplar[state.selectedGrup] || 0;
+                        ilceValue = d.mahalleSayisi > 0 ? grupTotal / d.mahalleSayisi : 0;
+                    } else if (state.dataSource === 'dezavantajli' && d.gruplar) {
+                        const grupTotal = d.gruplar[state.selectedGrup] || 0;
+                        ilceValue = d.mahalleSayisi > 0 ? grupTotal / d.mahalleSayisi : 0;
+                    }
+                }
+
+                if (ilceValue > ilceMax) ilceMax = ilceValue;
+                if (ilceValue > 0 && ilceValue < ilceMin) ilceMin = ilceValue;
+            });
+            if (ilceMin === 999) ilceMin = 0;
+        }
+        // ============================================
+        // GEOJSON LOADING
+        // ============================================
+        // GeoJSON'dan ilçe başına gerçek mahalle sayısı
+        let gercekMahalleSayilari = {};
+
+        async function loadGeoJSON() {
+            // Mahalle
+            const mahalleRes = await fetch('mahalle.json');
+            const mahalleGeo = await mahalleRes.json();
+
+            mahalleLayer = L.geoJSON(mahalleGeo, {
+                style: getMahalleStyle,
+                onEachFeature: setupMahalleEvents
+            });
+
+            // GeoJSON'dan gerçek mahalle sayılarını hesapla
+            gercekMahalleSayilari = {};
+            mahalleGeo.features.forEach(feature => {
+                const ilce = (feature.properties.ILCE || '').trim();
+                const ilceKey = normalizeTr(ilce);
+                if (ilceKey) {
+                    gercekMahalleSayilari[ilceKey] = (gercekMahalleSayilari[ilceKey] || 0) + 1;
+                }
+            });
+            console.log('GeoJSON mahalle sayıları:', gercekMahalleSayilari);
+
+            // İlçe ortalamalarını gerçek mahalle sayısına göre yeniden hesapla
+            updateIlceOrtalamalari();
+
+            // İlçe
+            const ilceRes = await fetch(encodeURI('ilçe.geojson'));
+            const ilceGeo = await ilceRes.json();
+
+            ilceLayer = L.geoJSON(ilceGeo, {
+                style: getIlceStyle,
+                onEachFeature: setupIlceEvents
+            }).addTo(map);
+
+            createIlceLabels();
+            map.setView([41.15, 29.0], 10);
+        }
+
+        // İlçe ortalamalarını 4. kök ile yumuşak normalize et
+        function updateIlceOrtalamalari() {
+            // Sosyal - 4. kök normalizasyonu (nüfus etkisi %25)
+            Object.keys(sosyalIlce).forEach(ilceKey => {
+                const nufus = ilceNufus[ilceKey];
+                sosyalIlce[ilceKey].nufus = nufus || 0;
+
+                if (nufus && nufus > 0) {
+                    // 4. kök: toplam / ⁴√nüfus (nüfus etkisi yumuşak)
+                    sosyalIlce[ilceKey].ortalama = sosyalIlce[ilceKey].toplam / Math.pow(nufus, 0.25) * 10;
+                } else {
+                    // Nüfus verisi yoksa sadece toplam
+                    sosyalIlce[ilceKey].ortalama = sosyalIlce[ilceKey].toplam;
+                }
+            });
+
+            // DG - 4. kök normalizasyonu
+            Object.keys(dgIlce).forEach(ilceKey => {
+                const nufus = ilceNufus[ilceKey];
+                dgIlce[ilceKey].nufus = nufus || 0;
+
+                if (nufus && nufus > 0) {
+                    // 4. kök
+                    dgIlce[ilceKey].ortalama = dgIlce[ilceKey].toplam / Math.pow(nufus, 0.25) * 10;
+                } else {
+                    dgIlce[ilceKey].ortalama = dgIlce[ilceKey].toplam;
+                }
+            });
+
+            // Min/max yeniden hesapla
+            recalculateMinMax();
+            console.log('Ortalamalar nüfusa göre güncellendi');
+
+            // Debug logları
+            logDataMatching();
+        }
+
+        // Veri eşleşme kontrolü ve debug logları
+        function logDataMatching() {
+            console.group('📊 VERİ EŞLEŞTİRME RAPORU');
+
+            // 1. GeoJSON İlçe Sayısı
+            const geoIlceCount = ilceLayer ? ilceLayer.getLayers().length : 0;
+            console.log(`🗺️ GeoJSON İlçe Sayısı: ${geoIlceCount}`);
+
+            // 2. GeoJSON Mahalle Sayısı
+            const geoMahalleCount = mahalleLayer ? mahalleLayer.getLayers().length : 0;
+            console.log(`🗺️ GeoJSON Mahalle Sayısı: ${geoMahalleCount}`);
+
+            // 3. Nüfus Verileri
+            const nufusMahalleCount = Object.keys(mahalleNufus).length;
+            const nufusIlceCount = Object.keys(ilceNufus).length;
+            console.log(`👥 Nüfus Mahalle Sayısı: ${nufusMahalleCount}`);
+            console.log(`👥 Nüfus İlçe Sayısı: ${nufusIlceCount}`);
+
+            // 4. Sosyal Veri
+            const sosyalMahalleCount = Object.keys(sosyalMahalle).length;
+            const sosyalIlceCount = Object.keys(sosyalIlce).length;
+            console.log(`📋 Sosyal Mahalle Sayısı: ${sosyalMahalleCount}`);
+            console.log(`📋 Sosyal İlçe Sayısı: ${sosyalIlceCount}`);
+
+            // 5. DG Veri
+            const dgMahalleCount = Object.keys(dgMahalle).length;
+            const dgIlceCount = Object.keys(dgIlce).length;
+            console.log(`🎯 DG Mahalle Sayısı: ${dgMahalleCount}`);
+            console.log(`🎯 DG İlçe Sayısı: ${dgIlceCount}`);
+
+            // 6. Eşleşmeyen İlçeler (Nüfus)
+            console.group('❌ Nüfus verisi olmayan ilçeler:');
+            Object.keys(sosyalIlce).forEach(ilceKey => {
+                if (!ilceNufus[ilceKey]) {
+                    console.warn(`  - ${ilceKey}`);
+                }
+            });
+            console.groupEnd();
+
+            // 7. Eşleşmeyen Mahalleler (Nüfus)
+            const nufusOlmayanMahalleler = [];
+            Object.keys(sosyalMahalle).forEach(key => {
+                if (!mahalleNufus[key]) {
+                    nufusOlmayanMahalleler.push(key);
+                }
+            });
+            console.group(`❌ Nüfus verisi olmayan mahalleler (${nufusOlmayanMahalleler.length}):`);
+            nufusOlmayanMahalleler.slice(0, 20).forEach(key => console.warn(`  - ${key}`));
+            if (nufusOlmayanMahalleler.length > 20) console.warn(`  ... ve ${nufusOlmayanMahalleler.length - 20} tane daha`);
+            console.groupEnd();
+
+            // 8. GeoJSON'da olan ama sosyal veride olmayan mahalleler
+            const geoMahalleKeys = new Set();
+            if (mahalleLayer) {
+                mahalleLayer.eachLayer(l => {
+                    const haritaKey = (l.feature.properties['Harita İlçe-Mahalle'] || '').trim();
+                    const key = normalizeTr(haritaKey);
+                    if (key) geoMahalleKeys.add(key);
+                });
+            }
+
+            const sosyalOlmayanGeoMahalleler = [];
+            geoMahalleKeys.forEach(key => {
+                if (!sosyalMahalle[key]) {
+                    sosyalOlmayanGeoMahalleler.push(key);
+                }
+            });
+            console.group(`❌ Sosyal verisi olmayan GeoJSON mahalleleri (${sosyalOlmayanGeoMahalleler.length}):`);
+            sosyalOlmayanGeoMahalleler.slice(0, 20).forEach(key => console.warn(`  - ${key}`));
+            if (sosyalOlmayanGeoMahalleler.length > 20) console.warn(`  ... ve ${sosyalOlmayanGeoMahalleler.length - 20} tane daha`);
+            console.groupEnd();
+
+            // 9. TERS KONTROL: Sosyal veride var ama GeoJSON'da olmayan mahalleler (BOŞTA KALAN VERİ!)
+            const geoOlmayanSosyalMahalleler = [];
+            Object.keys(sosyalMahalle).forEach(key => {
+                if (!geoMahalleKeys.has(key)) {
+                    geoOlmayanSosyalMahalleler.push(key);
+                }
+            });
+            console.group(`🔴 BOŞTA VERİ - GeoJSON'da olmayan sosyal verili mahalleler (${geoOlmayanSosyalMahalleler.length}):`);
+            geoOlmayanSosyalMahalleler.forEach(key => console.error(`  - ${key} (VERİ KAYBI!)`));
+            console.groupEnd();
+
+            // 10. DG için de aynı kontrol
+            const geoOlmayanDGMahalleler = [];
+            Object.keys(dgMahalle).forEach(key => {
+                if (!geoMahalleKeys.has(key)) {
+                    geoOlmayanDGMahalleler.push(key);
+                }
+            });
+            if (geoOlmayanDGMahalleler.length > 0) {
+                console.group(`🔴 BOŞTA VERİ - GeoJSON'da olmayan DG verili mahalleler (${geoOlmayanDGMahalleler.length}):`);
+                geoOlmayanDGMahalleler.forEach(key => console.error(`  - ${key} (VERİ KAYBI!)`));
+                console.groupEnd();
+            }
+
+            // 11. Özet
+            console.log('');
+            console.log('📈 ÖZET:');
+            console.log(`  GeoJSON İlçe: ${geoIlceCount} | Nüfus İlçe: ${nufusIlceCount} | Sosyal İlçe: ${sosyalIlceCount} | DG İlçe: ${dgIlceCount}`);
+            console.log(`  GeoJSON Mahalle: ${geoMahalleCount} | Nüfus Mahalle: ${nufusMahalleCount} | Sosyal Mahalle: ${sosyalMahalleCount} | DG Mahalle: ${dgMahalleCount}`);
+            console.log(`  Nüfus eşleşmeyen: ${nufusOlmayanMahalleler.length} mahalle`);
+            console.log(`  Sosyal veri eşleşmeyen: ${sosyalOlmayanGeoMahalleler.length} GeoJSON mahalle`);
+            console.log(`  🔴 BOŞTA KALAN SOSYAL VERİ: ${geoOlmayanSosyalMahalleler.length} mahalle`);
+            console.log(`  🔴 BOŞTA KALAN DG VERİ: ${geoOlmayanDGMahalleler.length} mahalle`);
+
+            console.groupEnd();
+        }
+
+        // ============================================
+        // STYLES
+        // ============================================
+        function getIlceStyle(feature) {
+            const ilceName = getIlceNameFromFeature(feature);
+            const ilceKey = normalizeTr(ilceName);
+            const data = getIlceData()[ilceKey];
+
+            // Seçili grup varsa o grubun ortalamasını hesapla
+            let value = 0;
+            if (data) {
+                if (state.selectedGrup) {
+                    // Seçili grubun toplamını 4. kök ile normalize et
+                    const nufus = data.nufus || ilceNufus[ilceKey] || 0;
+                    if (state.dataSource === 'sosyal' && data.ustGruplar) {
+                        const grupTotal = data.ustGruplar[state.selectedGrup] || 0;
+                        value = nufus > 0 ? grupTotal / Math.pow(nufus, 0.25) * 10 : grupTotal;
+                    } else if (state.dataSource === 'dezavantajli' && data.gruplar) {
+                        const grupTotal = data.gruplar[state.selectedGrup] || 0;
+                        value = nufus > 0 ? grupTotal / Math.pow(nufus, 0.25) * 10 : grupTotal;
+                    }
+                } else {
+                    value = data.ortalama || 0;
+                }
+            }
+
+            return {
+                color: '#666',
+                weight: 0.5,
+                opacity: 0.8,
+                fillColor: getColor(value, ilceMax, ilceMin),
+                fillOpacity: value > 0 ? 0.7 : 0.1
+            };
+        }
+
+        function getMahalleStyle(feature) {
+            const haritaKey = (feature.properties['Harita İlçe-Mahalle'] || '').trim();
+            const key = normalizeTr(haritaKey);
+            const data = getMahalleData()[key];
+
+            // İlçe filtresi
+            const featureIlce = (feature.properties.ILCE || '').trim();
+            const featureIlceKey = normalizeTr(featureIlce);
+
+            if (state.selectedIlce && featureIlceKey !== state.selectedIlce) {
+                return { color: 'transparent', weight: 0, opacity: 0, fillColor: 'transparent', fillOpacity: 0 };
+            }
+
+            const value = getMahalleValue(data, key);
+
+            return {
+                color: '#666',
+                weight: 0.5,
+                opacity: 0.5,
+                fillColor: getColor(value, globalMax, globalMin),
+                fillOpacity: value > 0 ? 0.75 : 0.1
+            };
+        }
+
+        function getIlceBorderStyle(ilceKey) {
+            // Seçili ilçe ise sadece border
+            if (ilceKey === state.selectedIlce) {
+                return {
+                    color: '#d4dadc',
+                    weight: 5,
+                    fillOpacity: 0,
+                    opacity: 1
+                };
+            }
+            // Diğer ilçeler: hafif dolgu ile göster (tıklanabilir)
+            return {
+                color: '#d4dadc',
+                weight: 2,
+                fillColor: '#f5f5f5',
+                fillOpacity: 0.6,
+                opacity: 1
+            };
+        }
+
+        // ============================================
+        // EVENTS
+        // ============================================
+        function getIlceNameFromFeature(feature) {
+            if (feature.properties.display_name) return feature.properties.display_name.split(',')[0];
+            if (feature.properties.address?.archipelago) return feature.properties.address.archipelago;
+            return '';
+        }
+
+        function setupIlceEvents(feature, layer) {
+            const ilceName = getIlceNameFromFeature(feature);
+            const ilceKey = normalizeTr(ilceName);
+            const data = getIlceData()[ilceKey];
+
+            // Tooltip
+            let content = `<div class="tooltip-title">${ilceName}</div>`;
+            if (data) {
+                content += `<div class="tooltip-value">Ortalama: ${formatNumber(data.ortalama)}</div>`;
+                content += `<div class="tooltip-subtitle">${data.mahalleSayisi || 0} mahalle</div>`;
+            }
+            layer.bindTooltip(content, { direction: 'center' });
+
+            // Hover
+            layer.on('mouseover', function () {
+                if (state.viewMode === 'istanbul') {
+                    this.setStyle({ weight: 2, fillOpacity: 0.85 });
+                } else {
+                    // İlçe modunda: diğer ilçelere hover
+                    if (ilceKey !== state.selectedIlce) {
+                        this.setStyle({ weight: 3, fillOpacity: 0.7, fillColor: '#e0e0e0' });
+                    }
+                }
+            });
+            layer.on('mouseout', function () {
+                if (state.viewMode === 'istanbul') {
+                    this.setStyle(getIlceStyle(feature));
+                } else {
+                    this.setStyle(getIlceBorderStyle(ilceKey));
+                }
+            });
+
+            // Click
+            layer.on('click', function (e) {
+                L.DomEvent.stopPropagation(e);
+                selectIlce(ilceKey, ilceName, layer);
+            });
+        }
+
+        function setupMahalleEvents(feature, layer) {
+            const ilce = feature.properties.ILCE || '';
+            const mahalle = feature.properties.MAHALLE || '';
+            const haritaKey = feature.properties['Harita İlçe-Mahalle'] || '';
+            const key = normalizeTr(haritaKey);
+            const data = getMahalleData()[key];
+
+            // Tooltip
+            let content = `<div class="tooltip-title">${mahalle}</div>`;
+            content += `<div class="tooltip-subtitle">${ilce}</div>`;
+            if (data) {
+                content += `<div class="tooltip-value">Toplam: ${formatNumber(data.toplam)}</div>`;
+            }
+            layer.bindTooltip(content, { direction: 'center' });
+
+            // Hover - sadece seçili ilçenin mahalleleri için
+            const featureIlce = (feature.properties.ILCE || '').trim();
+            const featureIlceKey = normalizeTr(featureIlce);
+
+            layer.on('mouseover', function () {
+                // Sadece seçili ilçenin mahalleleri hover edilebilir
+                if (!state.selectedIlce || featureIlceKey === state.selectedIlce) {
+                    this.setStyle({ weight: 2, opacity: 1 });
+                }
+            });
+            layer.on('mouseout', function () {
+                this.setStyle(getMahalleStyle(feature));
+            });
+
+            // Click
+            layer.on('click', function (e) {
+                L.DomEvent.stopPropagation(e);
+                selectMahalle(key, mahalle, ilce, data);
+            });
+        }
+
+        // ============================================
+        // VIEW MODE TRANSITIONS
+        // ============================================
+        function selectIlce(ilceKey, ilceName, layer) {
+            // Aynı ilçeye tekrar tıklama
+            if (state.selectedIlce === ilceKey) {
+                backToIstanbul();
+                return;
+            }
+
+            state.viewMode = 'ilce';
+            state.selectedIlce = ilceKey;
+            state.selectedIlceName = ilceName;
+            state.selectedMahalle = null;
+
+            // Mahalle layer ekle
+            if (!map.hasLayer(mahalleLayer)) {
+                mahalleLayer.addTo(map);
+            }
+
+            // Stilleri güncelle ve pointer events ayarla
+            mahalleLayer.eachLayer(l => {
+                const fIlce = (l.feature.properties.ILCE || '').trim();
+                const fIlceKey = normalizeTr(fIlce);
+                l.setStyle(getMahalleStyle(l.feature));
+
+                // Seçili ilçe dışındaki mahallelerin event'lerini kapat
+                if (fIlceKey !== state.selectedIlce) {
+                    if (l.getElement()) l.getElement().style.pointerEvents = 'none';
+                    l.closeTooltip();
+                    l.unbindTooltip();
+                } else {
+                    if (l.getElement()) l.getElement().style.pointerEvents = 'auto';
+                }
+            });
+
+            // İlçe layer'ı güncelle: seçili ilçe border, diğerleri hafif dolgu
+            ilceLayer.eachLayer(l => {
+                const lIlceName = getIlceNameFromFeature(l.feature);
+                const lIlceKey = normalizeTr(lIlceName);
+                l.setStyle(getIlceBorderStyle(lIlceKey));
+
+                // Seçili ilçenin pointer events'ini kapat (mahalleler tıklanabilsin)
+                // Diğer ilçeler tıklanabilir olsun
+                if (lIlceKey === state.selectedIlce) {
+                    if (l.getElement()) l.getElement().style.pointerEvents = 'none';
+                } else {
+                    if (l.getElement()) l.getElement().style.pointerEvents = 'auto';
+                }
+            });
+            ilceLayer.bringToFront();
+
+            // Etiketler
+            if (ilceLabels && map.hasLayer(ilceLabels)) map.removeLayer(ilceLabels);
+            createMahalleLabels(ilceKey);
+
+            // Dinamik mahalle etiket zoom seviyesi (ilçe boyutuna göre)
+            if (layer) {
+                const bounds = layer.getBounds();
+                const sw = bounds.getSouthWest();
+                const ne = bounds.getNorthEast();
+                // Kabaca alan hesabı (derece cinsinden)
+                const areaApprox = (ne.lat - sw.lat) * (ne.lng - sw.lng);
+
+                // Geniş ilçeler (Silivri, Çatalca vb.) için düşük zoom
+                if (areaApprox > 0.05) {
+                    state.currentMahalleLabelMinZoom = 10;
+                } else if (areaApprox > 0.02) {
+                    state.currentMahalleLabelMinZoom = 11;
+                } else if (areaApprox > 0.008) {
+                    state.currentMahalleLabelMinZoom = 12;
+                } else {
+                    state.currentMahalleLabelMinZoom = 13;
+                }
+
+                map.fitBounds(bounds);
+
+                // Etiketleri hemen göster (zoomend'i bekleme)
+                setTimeout(() => {
+                    if (mahalleLabels && !map.hasLayer(mahalleLabels)) {
+                        map.addLayer(mahalleLabels);
+                    }
+                }, 100);
+            }
+
+            // Toggle butonunu gizle ve sidebar butonunu yukarı kaydır
+            document.getElementById('viewToggleBtn').style.display = 'none';
+            document.getElementById('sidebarToggleBtn').style.top = '60px';
+
+            renderSidebar();
+        }
+
+        function selectMahalle(key, mahalleName, ilceName, data) {
+            state.viewMode = 'mahalle';
+            state.selectedMahalle = key;
+            state.selectedMahalleName = mahalleName;
+
+            renderSidebar();
+        }
+
+        function backToIstanbul() {
+            state.viewMode = 'istanbul';
+            state.selectedIlce = null;
+            state.selectedIlceName = null;
+            state.selectedMahalle = null;
+            state.selectedMahalleName = null;
+
+            // Toggle butonunu göster ve sidebar butonunu eski yerine getir
+            document.getElementById('viewToggleBtn').style.display = 'flex';
+            document.getElementById('sidebarToggleBtn').style.top = '110px';
+
+            // Mahalle layer kaldır
+            if (map.hasLayer(mahalleLayer)) map.removeLayer(mahalleLayer);
+            if (mahalleLabels && map.hasLayer(mahalleLabels)) map.removeLayer(mahalleLabels);
+
+            // İlçe layer'ı geri getir
+            ilceLayer.eachLayer(l => {
+                l.setStyle(getIlceStyle(l.feature));
+                if (l.getElement()) l.getElement().style.pointerEvents = 'auto';
+            });
+
+            // İlçe etiketleri
+            if (ilceLabels && !map.hasLayer(ilceLabels)) map.addLayer(ilceLabels);
+
+            // Zoom
+            map.fitBounds(ilceLayer.getBounds(), { padding: [20, 20] });
+
+            renderSidebar();
+        }
+
+        // ============================================
+        // LABELS
+        // ============================================
+        // İlçe etiket offset'leri [x, y] - pozitif x=sağ, pozitif y=aşağı
+        const ILCE_OFFSETS = {
+            'ZEYTINBURNU': [0, 15],
+            'BAHCELIEVLER': [0, 8],
+            'BAGCILAR': [0, 11],
+            'SANCAKTEPE': [-15, 0],
+            'BAYRAMPASA': [-8, 7],
+            'ESENLER': [0, 5],
+            'KAGITHANE': [0, -10]
+        };
+
+        function createIlceLabels() {
+            if (ilceLabels) map.removeLayer(ilceLabels);
+            ilceLabels = L.layerGroup();
+
+            ilceLayer.eachLayer(layer => {
+                const name = getIlceNameFromFeature(layer.feature);
+                if (!name) return;
+
+                const center = layer.getBounds().getCenter();
+                const ilceKey = normalizeTr(name);
+                const offset = ILCE_OFFSETS[ilceKey] || [0, 0];
+
+                const label = L.marker(center, {
+                    icon: L.divIcon({
+                        className: 'ilce-label',
+                        html: `<div style="transform: translate(${offset[0]}px, ${offset[1]}px)">${name}</div>`,
+                        iconSize: [100, 20],
+                        iconAnchor: [50, 10]
+                    }),
+                    interactive: false
+                });
+                ilceLabels.addLayer(label);
+            });
+
+            ilceLabels.addTo(map);
+        }
+
+        function createMahalleLabels(ilceKey) {
+            if (mahalleLabels) map.removeLayer(mahalleLabels);
+            mahalleLabels = L.layerGroup();
+
+            mahalleLayer.eachLayer(layer => {
+                const featureIlce = (layer.feature.properties.ILCE || '').trim();
+                if (normalizeTr(featureIlce) !== ilceKey) return;
+
+                const name = layer.feature.properties.MAHALLE || '';
+                if (!name) return;
+
+                const label = L.marker(layer.getBounds().getCenter(), {
+                    icon: L.divIcon({
+                        className: 'mahalle-label',
+                        html: `<div>${name}</div>`,
+                        iconSize: [80, 16],
+                        iconAnchor: [40, 8]
+                    }),
+                    interactive: false
+                });
+                mahalleLabels.addLayer(label);
+            });
+
+            // Zoom kontrolü
+            if (map.getZoom() >= CONFIG.mahalleLabelMinZoom) {
+                mahalleLabels.addTo(map);
+            }
+        }
+
+        // ============================================
+        // SIDEBAR RENDERING
+        // ============================================
+        function renderSidebar() {
+            renderContextBox();
+            renderGrupLegend();
+            renderAltGrupLegend();
+            renderSorunLegend();      // DG modunda sosyal sorunlar
+            renderSorunAltLegend();   // DG modunda sosyal sorun alt grupları
+            updateBackButton();
+        }
+
+        function renderContextBox() {
+            const title = document.getElementById('contextTitle');
+            const subtitle = document.getElementById('contextSubtitle');
+            const stats = document.getElementById('contextStats');
+
+            // Subtitle her zaman gizli
+            subtitle.style.display = 'none';
+
+            if (state.viewMode === 'istanbul') {
+                title.textContent = 'İSTANBUL GENELİ';
+
+                const ilceData = getIlceData();
+                const toplamIlce = Object.keys(ilceData).length;
+                const toplamMahalle = Object.values(getMahalleData()).length;
+
+                stats.innerHTML = `
+                    <div class="context-stat">
+                        <span class="context-stat-value">${toplamIlce}</span>
+                        <span class="context-stat-label">İlçe</span>
+                    </div>
+                    <div class="context-stat">
+                        <span class="context-stat-value">${toplamMahalle}</span>
+                        <span class="context-stat-label">Mahalle</span>
+                    </div>
+                `;
+            } else if (state.viewMode === 'ilce') {
+                title.textContent = state.selectedIlceName || state.selectedIlce;
+                stats.innerHTML = '';
+            } else if (state.viewMode === 'mahalle') {
+                const mahalleData = getMahalleData()[state.selectedMahalle];
+                title.textContent = `${state.selectedMahalleName || ''} - ${mahalleData?.ilce || ''}`;
+                stats.innerHTML = '';
+            }
+        }
+
+        function renderGrupLegend() {
+            const container = document.getElementById('grupLegend');
+            const titleEl = document.getElementById('grupSectionTitle');
+
+            // Grup toplamlarını hesapla (mevcut context'e göre)
+            const grupTotals = calculateGrupTotals();
+            const total = Object.values(grupTotals).reduce((a, b) => a + b, 0);
+            const sorted = Object.entries(grupTotals).sort((a, b) => b[1] - a[1]);
+            const maxPercent = sorted.length > 0 ? (sorted[0][1] / total) * 100 : 1;
+
+            titleEl.textContent = state.dataSource === 'sosyal' ? 'Üst Gruplar' : 'Dezavantajlı Gruplar';
+
+            container.innerHTML = sorted.map(([grup, value]) => {
+                const percent = ((value / total) * 100).toFixed(1);
+                const barWidth = ((value / total) * 100 / maxPercent * 100).toFixed(0);
+                const color = GRUP_COLORS[grup] || '#6366f1';
+                const isActive = state.selectedGrup === grup;
+
+                return `
+                    <div class="legend-item ${isActive ? 'active' : ''}" data-grup="${grup}" style="--progress: ${barWidth}%">
+                        <div class="legend-color" style="background: ${color}"></div>
+                        <div class="legend-label">${capitalize(grup)}</div>
+                        <div class="legend-value">${percent}%</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Click events
+            container.querySelectorAll('.legend-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const grup = item.dataset.grup;
+                    if (state.selectedGrup === grup) {
+                        state.selectedGrup = null;
+                        state.selectedAltGrup = null;
+                    } else {
+                        state.selectedGrup = grup;
+                        state.selectedAltGrup = null;
+                    }
+
+                    recalculateMinMax();
+                    updateMapStyles();
+                    renderSidebar();
+                });
+            });
+        }
+
+        function renderAltGrupLegend() {
+            const section = document.getElementById('altGrupSection');
+            const container = document.getElementById('altGrupLegend');
+
+            if (state.dataSource !== 'sosyal' || !state.selectedGrup) {
+                section.classList.remove('visible');
+                return;
+            }
+
+            section.classList.add('visible');
+
+            // Seçili üst grup için alt grupları topla
+            const altGrupData = {};
+            const rawData = getRawData();
+
+            rawData.forEach(row => {
+                const ilce = (row['İlçe'] || row['Ilce'] || '').toString().trim();
+                const ilceKey = normalizeTr(ilce);
+
+                // Context filtresi
+                if (state.viewMode === 'ilce' && state.selectedIlce && ilceKey !== state.selectedIlce) return;
+
+                const ustGrup = (row['Üst Grup'] || row['Ust Grup'] || '').toString().trim().toUpperCase();
+                const altGrup = (row['Alt Grup'] || '').toString().trim().toUpperCase();
+                let katsayi = row['Normalize SES Bölgesel Katsayı'] || 0;
+                if (typeof katsayi === 'string') katsayi = parseFloat(katsayi.replace(',', '.')) || 0;
+
+                if (ustGrup === state.selectedGrup && altGrup) {
+                    altGrupData[altGrup] = (altGrupData[altGrup] || 0) + katsayi;
+                }
+            });
+
+            const total = Object.values(altGrupData).reduce((a, b) => a + b, 0);
+            const sorted = Object.entries(altGrupData).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+            container.innerHTML = sorted.map(([grup, value]) => {
+                const percent = ((value / total) * 100).toFixed(1);
+                const isActive = state.selectedAltGrup === grup;
+
+                return `
+                    <div class="legend-item ${isActive ? 'active' : ''}" data-altgrup="${grup}" style="font-size: 11px; padding: 6px 8px;">
+                        <div class="legend-label">${capitalize(grup)}</div>
+                        <div class="legend-value">${percent}%</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Click events
+            container.querySelectorAll('.legend-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const grup = item.dataset.altgrup;
+                    state.selectedAltGrup = state.selectedAltGrup === grup ? null : grup;
+
+                    recalculateMinMax();
+                    updateMapStyles();
+                    renderSidebar();
+                });
+            });
+        }
+
+        function calculateGrupTotals() {
+            const totals = {};
+
+            // Mahalle modunda: seçili mahallenin grup dağılımını kullan
+            if (state.viewMode === 'mahalle' && state.selectedMahalle) {
+                const mahalleData = getMahalleData()[state.selectedMahalle];
+                if (mahalleData) {
+                    if (state.dataSource === 'sosyal' && mahalleData.ustGruplar) {
+                        return mahalleData.ustGruplar;
+                    } else if (state.dataSource === 'dezavantajli' && mahalleData.gruplar) {
+                        return mahalleData.gruplar;
+                    }
+                }
+                return totals;
+            }
+
+            const rawData = getRawData();
+            const grupColumn = state.dataSource === 'sosyal' ? 'Üst Grup' : 'Dezavantajlı Grup';
+            const valueColumn = state.dataSource === 'sosyal'
+                ? 'Normalize SES Bölgesel Katsayı'
+                : 'Normalize SES Bölgesel DG Katsayısı';
+
+            rawData.forEach(row => {
+                const ilce = (row['İlçe'] || row['Ilce'] || '').toString().trim();
+                const ilceKey = normalizeTr(ilce);
+
+                // Context filtresi
+                if (state.viewMode === 'ilce' && state.selectedIlce && ilceKey !== state.selectedIlce) return;
+
+                let grup = (row[grupColumn] || row['Ust Grup'] || '').toString().trim().toUpperCase();
+                if (state.dataSource === 'dezavantajli') grup = normalizeTr(grup);
+
+                let katsayi = row[valueColumn] || row['Normalize SES Bolgesel Katsayi'] || row['Normalize SES Bolgesel DG Katsayisi'] || 0;
+                if (typeof katsayi === 'string') katsayi = parseFloat(katsayi.replace(',', '.')) || 0;
+
+                if (grup) {
+                    totals[grup] = (totals[grup] || 0) + katsayi;
+                }
+            });
+
+            return totals;
+        }
+
+        // DG modunda: Seçili DG'nin sosyal sorunlarını göster
+        function renderSorunLegend() {
+            const section = document.getElementById('sorunSection');
+            const container = document.getElementById('sorunLegend');
+            const titleEl = document.getElementById('sorunSectionTitle');
+
+            // Sadece DG modunda ve bir grup seçiliyse göster
+            if (state.dataSource !== 'dezavantajli' || !state.selectedGrup) {
+                section.classList.remove('visible');
+                return;
+            }
+
+            section.classList.add('visible');
+            titleEl.textContent = `${capitalize(state.selectedGrup)} - Sosyal Sorunlar`;
+
+            // Risk verisinden seçili DG'nin sosyal sorunlarını hesapla
+            const sorunTotals = calculateSorunTotals();
+            const total = Object.values(sorunTotals).reduce((a, b) => a + b, 0);
+            const sorted = Object.entries(sorunTotals).sort((a, b) => b[1] - a[1]);
+            const maxPercent = sorted.length > 0 ? (sorted[0][1] / total) * 100 : 1;
+
+            container.innerHTML = sorted.map(([sorun, value]) => {
+                const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                const barWidth = total > 0 ? ((value / total) * 100 / maxPercent * 100).toFixed(0) : 0;
+                const color = GRUP_COLORS[sorun] || '#6366f1';
+                const isActive = state.selectedUstGrup === sorun;
+
+                return `
+                    <div class="legend-item ${isActive ? 'active' : ''}" data-sorun="${sorun}" style="--progress: ${barWidth}%">
+                        <div class="legend-color" style="background: ${color}"></div>
+                        <div class="legend-label">${capitalize(sorun)}</div>
+                        <div class="legend-value">${percent}%</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Click events
+            container.querySelectorAll('.legend-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const sorun = item.dataset.sorun;
+                    if (state.selectedUstGrup === sorun) {
+                        state.selectedUstGrup = null;
+                    } else {
+                        state.selectedUstGrup = sorun;
+                    }
+                    renderSidebar();
+                });
+            });
+        }
+
+        // DG modunda: Seçili sosyal sorunun alt gruplarını göster
+        function renderSorunAltLegend() {
+            const section = document.getElementById('sorunAltSection');
+            const container = document.getElementById('sorunAltLegend');
+            const titleEl = document.getElementById('sorunAltTitle');
+
+            // Sadece DG modunda, grup ve üst grup seçiliyse göster
+            if (state.dataSource !== 'dezavantajli' || !state.selectedGrup || !state.selectedUstGrup) {
+                section.classList.remove('visible');
+                return;
+            }
+
+            section.classList.add('visible');
+            titleEl.textContent = `${capitalize(state.selectedGrup)} - ${capitalize(state.selectedUstGrup)} Alt Grupları`;
+
+            // Risk verisinden alt grupları hesapla
+            const altTotals = calculateSorunAltTotals();
+            const total = Object.values(altTotals).reduce((a, b) => a + b, 0);
+            const sorted = Object.entries(altTotals).sort((a, b) => b[1] - a[1]);
+            const maxPercent = sorted.length > 0 ? (sorted[0][1] / total) * 100 : 1;
+
+            container.innerHTML = sorted.map(([altGrup, value]) => {
+                const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                const barWidth = total > 0 ? ((value / total) * 100 / maxPercent * 100).toFixed(0) : 0;
+
+                return `
+                    <div class="legend-item" style="--progress: ${barWidth}%">
+                        <div class="legend-color" style="background: #6366f1"></div>
+                        <div class="legend-label">${altGrup}</div>
+                        <div class="legend-value">${percent}%</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // DG'nin sosyal sorun toplamlarını hesapla
+        function calculateSorunTotals() {
+            const totals = {};
+            const selectedDG = state.selectedGrup;
+
+            riskRaw.forEach(row => {
+                const ilce = (row['İlçe'] || '').toString().trim();
+                const ilceKey = normalizeTr(ilce);
+                const mahalle = (row['Mahalle'] || '').toString().trim().toUpperCase();
+                const mahalleKey = normalizeTr(ilce + ' ' + mahalle);
+
+                // Lokasyon filtresi
+                if (state.viewMode === 'ilce' && state.selectedIlce && ilceKey !== state.selectedIlce) return;
+                if (state.viewMode === 'mahalle' && state.selectedMahalle && mahalleKey !== state.selectedMahalle) return;
+
+                // DG filtresi
+                let dg = (row['Dezavantajlı Grup'] || '').toString().trim().toUpperCase();
+                dg = normalizeTr(dg);
+                if (dg !== selectedDG) return;
+
+                // Üst grup ve skor
+                const ustGrup = (row['Sosyal Sorun (Üst Grup)'] || '').toString().trim().toUpperCase();
+                let skor = row['NİHAİ RİSK SKORU'] || 0;
+                if (typeof skor === 'string') skor = parseFloat(skor.replace(',', '.')) || 0;
+
+                if (ustGrup) {
+                    totals[ustGrup] = (totals[ustGrup] || 0) + skor;
+                }
+            });
+
+            return totals;
+        }
+
+        // DG + Üst Grup'un alt grup toplamlarını hesapla
+        function calculateSorunAltTotals() {
+            const totals = {};
+            const selectedDG = state.selectedGrup;
+            const selectedUst = state.selectedUstGrup;
+
+            riskRaw.forEach(row => {
+                const ilce = (row['İlçe'] || '').toString().trim();
+                const ilceKey = normalizeTr(ilce);
+                const mahalle = (row['Mahalle'] || '').toString().trim().toUpperCase();
+                const mahalleKey = normalizeTr(ilce + ' ' + mahalle);
+
+                // Lokasyon filtresi
+                if (state.viewMode === 'ilce' && state.selectedIlce && ilceKey !== state.selectedIlce) return;
+                if (state.viewMode === 'mahalle' && state.selectedMahalle && mahalleKey !== state.selectedMahalle) return;
+
+                // DG filtresi
+                let dg = (row['Dezavantajlı Grup'] || '').toString().trim().toUpperCase();
+                dg = normalizeTr(dg);
+                if (dg !== selectedDG) return;
+
+                // Üst grup filtresi
+                const ustGrup = (row['Sosyal Sorun (Üst Grup)'] || '').toString().trim().toUpperCase();
+                if (ustGrup !== selectedUst) return;
+
+                // Alt grup ve skor
+                const altGrup = (row['Sosyal Sorun (Alt Grup)'] || '').toString().trim();
+                let skor = row['NİHAİ RİSK SKORU'] || 0;
+                if (typeof skor === 'string') skor = parseFloat(skor.replace(',', '.')) || 0;
+
+                if (altGrup) {
+                    totals[altGrup] = (totals[altGrup] || 0) + skor;
+                }
+            });
+
+            return totals;
+        }
+
+        function updateBackButton() {
+            const btn = document.getElementById('backBtn');
+            if (state.viewMode !== 'istanbul') {
+                btn.classList.add('visible');
+                btn.textContent = state.viewMode === 'mahalle'
+                    ? `← ${state.selectedIlceName}`
+                    : '← İstanbul Geneli';
+            } else {
+                btn.classList.remove('visible');
+            }
+        }
+
+        // ============================================
+        // MAP UPDATES
+        // ============================================
+        function updateMapStyles() {
+            if (mahalleLayer && map.hasLayer(mahalleLayer)) {
+                mahalleLayer.eachLayer(l => l.setStyle(getMahalleStyle(l.feature)));
+            }
+            // İlçe layer sadece istanbul modunda VE showAllMahalle kapalıyken güncellenir
+            if (ilceLayer && state.viewMode === 'istanbul' && !state.showAllMahalle) {
+                ilceLayer.eachLayer(l => l.setStyle(getIlceStyle(l.feature)));
+            }
+        }
+
+        function switchDataSource(source) {
+            if (state.dataSource === source) return;
+
+            state.dataSource = source;
+            state.selectedGrup = null;
+            state.selectedAltGrup = null;
+            state.selectedUstGrup = null;
+
+            recalculateMinMax();
+            updateMapStyles();
+            renderSidebar();
+
+            // Toggle butonları güncelle
+            document.querySelectorAll('.data-toggle button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.source === source);
+            });
+        }
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        document.querySelectorAll('.data-toggle button').forEach(btn => {
+            btn.addEventListener('click', () => switchDataSource(btn.dataset.source));
+        });
+
+        document.getElementById('backBtn').addEventListener('click', () => {
+            if (state.viewMode === 'mahalle') {
+                state.viewMode = 'ilce';
+                state.selectedMahalle = null;
+                renderSidebar();
+            } else {
+                backToIstanbul();
+            }
+        });
+
+        map.on('click', () => {
+            if (state.viewMode !== 'istanbul') {
+                backToIstanbul();
+            }
+        });
+
+        map.on('zoomend', () => {
+            if (mahalleLabels) {
+                // Etiketler: ilçe seçili VEYA showAllMahalle aktif ise göster (zoom yeterliyse)
+                // İlçe seçiliyse dinamik zoom eşiği, değilse default
+                const minZoom = state.selectedIlce ? state.currentMahalleLabelMinZoom : CONFIG.mahalleLabelMinZoom;
+                if (map.getZoom() >= minZoom && (state.selectedIlce || state.showAllMahalle)) {
+                    if (!map.hasLayer(mahalleLabels)) map.addLayer(mahalleLabels);
+                } else {
+                    if (map.hasLayer(mahalleLabels)) map.removeLayer(mahalleLabels);
+                }
+            }
+
+            // İlçe border kalınlığı
+            if (ilceLayer && state.viewMode !== 'istanbul') {
+                const zoom = map.getZoom();
+                const weight = zoom <= 10 ? 2 : zoom <= 11 ? 3 : zoom <= 12 ? 4 : 5;
+                ilceLayer.eachLayer(l => l.setStyle({ weight }));
+            }
+        });
+
+        // View Toggle Button
+        document.getElementById('viewToggleBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            state.showAllMahalle = !state.showAllMahalle;
+
+            const btn = document.getElementById('viewToggleBtn');
+            btn.classList.toggle('active', state.showAllMahalle);
+            btn.title = state.showAllMahalle ? 'İlçe görünümü' : 'Mahalle görünümü';
+
+            if (state.showAllMahalle) {
+                // Tüm mahalleleri göster
+                if (!map.hasLayer(mahalleLayer)) {
+                    mahalleLayer.addTo(map);
+                }
+                mahalleLayer.eachLayer(l => {
+                    l.setStyle(getMahalleStyle(l.feature));
+                    if (l.getElement()) l.getElement().style.pointerEvents = 'auto';
+                });
+
+                // İlçe layer'ları border olarak göster
+                ilceLayer.eachLayer(l => {
+                    l.setStyle({
+                        color: '#aaa',
+                        weight: 1.5,
+                        fillOpacity: 0,
+                        opacity: 0.6
+                    });
+                    if (l.getElement()) l.getElement().style.pointerEvents = 'none';
+                });
+                ilceLayer.bringToFront();
+
+                // İlçe etiketlerini kaldır
+                if (ilceLabels && map.hasLayer(ilceLabels)) map.removeLayer(ilceLabels);
+
+                // Mevcut etiketleri temizle ve tüm mahalleler için yeniden oluştur
+                if (mahalleLabels) {
+                    map.removeLayer(mahalleLabels);
+                    mahalleLabels = null;
+                }
+
+                mahalleLabels = L.layerGroup();
+                mahalleLayer.eachLayer(layer => {
+                    const name = layer.feature.properties.MAHALLE || '';
+                    if (!name) return;
+
+                    const label = L.marker(layer.getBounds().getCenter(), {
+                        icon: L.divIcon({
+                            className: 'mahalle-label',
+                            html: `<div>${name}</div>`,
+                            iconSize: [80, 16],
+                            iconAnchor: [40, 8]
+                        }),
+                        interactive: false
+                    });
+                    mahalleLabels.addLayer(label);
+                });
+
+                // Mahalle etiketlerini sadece yeterli zoom varsa ekle
+                if (map.getZoom() >= CONFIG.mahalleLabelMinZoom) {
+                    mahalleLabels.addTo(map);
+                }
+            } else {
+                // İlçe görünümüne dön
+                if (map.hasLayer(mahalleLayer)) map.removeLayer(mahalleLayer);
+
+                // Mahalle etiketlerini kaldır
+                if (mahalleLabels && map.hasLayer(mahalleLabels)) map.removeLayer(mahalleLabels);
+
+                ilceLayer.eachLayer(l => {
+                    l.setStyle(getIlceStyle(l.feature));
+                    if (l.getElement()) l.getElement().style.pointerEvents = 'auto';
+                });
+
+                // İlçe etiketlerini göster
+                if (ilceLabels && !map.hasLayer(ilceLabels)) map.addLayer(ilceLabels);
+            }
+        });
+
+        // Fullscreen Toggle
+        document.getElementById('fullscreenBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const container = document.querySelector('.container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen();
+                document.getElementById('fullscreenBtn').title = 'Tam ekrandan çık';
+            } else {
+                document.exitFullscreen();
+                document.getElementById('fullscreenBtn').title = 'Tam ekran';
+            }
+        });
+
+        // Sidebar Toggle
+        document.getElementById('sidebarToggleBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const sidebar = document.getElementById('sidebar');
+            const btn = document.getElementById('sidebarToggleBtn');
+            const allBtns = document.querySelectorAll('.view-toggle-btn');
+
+            sidebar.classList.toggle('hidden');
+
+            btn.title = sidebar.classList.contains('hidden') ? 'Paneli göster' : 'Paneli gizle';
+            btn.classList.toggle('active', sidebar.classList.contains('hidden'));
+
+            // Butonları kaydır
+            const newRight = sidebar.classList.contains('hidden') ? '10px' : '320px';
+            allBtns.forEach(b => b.style.right = newRight);
+
+            // Harita boyutunu güncelle
+            setTimeout(() => map.invalidateSize(), 300);
+        });
+
+        // ============================================
+        // START
+        // ============================================
+        loadData();
+    </script>
+</body>
+
+</html>

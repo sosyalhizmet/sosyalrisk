@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nüfus Normalizasyonu Metodolojisi</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.2rem;
+            margin-bottom: 30px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h2 {
+            color: #5c6bc0;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            border-bottom: 2px solid #e8eaf6;
+            padding-bottom: 10px;
+        }
+
+        .card h3 {
+            color: #3f51b5;
+            margin: 20px 0 10px;
+            font-size: 1.1rem;
+        }
+
+        .formula {
+            background: linear-gradient(135deg, #e8eaf6, #c5cae9);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1a237e;
+            margin: 15px 0;
+            font-family: 'Consolas', monospace;
+        }
+
+        .formula small {
+            display: block;
+            font-size: 0.8rem;
+            color: #5c6bc0;
+            margin-top: 8px;
+            font-weight: 400;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #5c6bc0;
+            color: white;
+            font-weight: 500;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .highlight {
+            background: #e8f5e9 !important;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-ilce {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .badge-mahalle {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .comparison-box {
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #5c6bc0;
+        }
+
+        .comparison-box.mahalle {
+            border-left-color: #7b1fa2;
+        }
+
+        .icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .note {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+
+        .warning {
+            background: #fff8e1;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        li {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            opacity: 0.8;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .back-link:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Ana Sayfa</a>
+        <h1>📊 Nüfus Normalizasyonu Metodolojisi</h1>
+
+        <!-- Neden Nüfus Normalizasyonu -->
+        <div class="card">
+            <h2>🎯 Neden Nüfus Normalizasyonu?</h2>
+            <p>Farklı nüfuslara sahip bölgeleri adil şekilde karşılaştırmak için nüfus normalizasyonu kullanıyoruz.
+                Ancak normalizasyon aşırı yapılırsa, küçük nüfuslu bölgeler abartılı görünebilir.</p>
+
+            <h3>Problem</h3>
+            <table>
+                <tr>
+                    <th>Bölge</th>
+                    <th>Toplam Katsayı</th>
+                    <th>Nüfus</th>
+                    <th>Ham vs Normalize</th>
+                </tr>
+                <tr>
+                    <td>Kadıköy</td>
+                    <td>10</td>
+                    <td>500,000</td>
+                    <td>Ham: 10 | Normalize: 2.0</td>
+                </tr>
+                <tr>
+                    <td>Adalar</td>
+                    <td>2</td>
+                    <td>20,000</td>
+                    <td>Ham: 2 | Normalize: 10.0</td>
+                </tr>
+            </table>
+            <p><strong>Sorun:</strong> Tam normalize edilirse Adalar çok koyu görünür ama gerçekte sadece 2 kişi
+                etkilenmiş!</p>
+        </div>
+
+        <!-- Çözüm: 4. Kök -->
+        <div class="card">
+            <h2>✨ Çözüm: 4. Kök Normalizasyonu</h2>
+            <p>Nüfusun etkisini <strong>%25</strong> seviyesinde tutarak dengeli bir görselleştirme sağlıyoruz.</p>
+
+            <div class="formula">
+                Değer = (Toplam Katsayı ÷ ⁴√Nüfus) × 10
+                <small>4. kök = nufus^0.25 - Nüfus etkisi yumuşak ve dengeli</small>
+            </div>
+
+            <div class="note">
+                <strong>💡 Avantaj:</strong> Hem nüfus etkili (büyük ilçeler kolay "gizlenmiyor") hem de küçük bölgeler
+                abartılmıyor!
+            </div>
+        </div>
+
+        <!-- Normalizasyon Seçenekleri Karşılaştırması -->
+        <div class="card">
+            <h2>📈 Normalizasyon Yöntemleri Karşılaştırması</h2>
+
+            <table>
+                <tr>
+                    <th>Yöntem</th>
+                    <th>Formül</th>
+                    <th>Nüfus Etkisi</th>
+                    <th>Kullanım</th>
+                </tr>
+                <tr>
+                    <td>Ham Toplam</td>
+                    <td>Toplam</td>
+                    <td>0%</td>
+                    <td>Sadece hacim gösterimi</td>
+                </tr>
+                <tr class="highlight">
+                    <td><strong>4. Kök (Seçilen)</strong></td>
+                    <td>Toplam / ⁴√Nüfus</td>
+                    <td><strong>25%</strong></td>
+                    <td><strong>Dengeli görselleştirme</strong></td>
+                </tr>
+                <tr>
+                    <td>Karekök</td>
+                    <td>Toplam / √Nüfus</td>
+                    <td>50%</td>
+                    <td>Orta dengeleme</td>
+                </tr>
+                <tr>
+                    <td>Doğrusal (100K başına)</td>
+                    <td>Toplam / Nüfus × 100K</td>
+                    <td>100%</td>
+                    <td>Politika standardı</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Örnek Hesaplamalar -->
+        <div class="card">
+            <h2>🔢 Örnek Hesaplamalar</h2>
+
+            <h3>İlçe Karşılaştırması</h3>
+            <table>
+                <tr>
+                    <th>İlçe</th>
+                    <th>Toplam</th>
+                    <th>Nüfus</th>
+                    <th>⁴√Nüfus</th>
+                    <th>Sonuç</th>
+                </tr>
+                <tr>
+                    <td>Kartal</td>
+                    <td>6.10</td>
+                    <td>475,000</td>
+                    <td>26.3</td>
+                    <td><strong>2.32</strong></td>
+                </tr>
+                <tr>
+                    <td>Beykoz</td>
+                    <td>4.98</td>
+                    <td>245,000</td>
+                    <td>22.2</td>
+                    <td><strong>2.24</strong></td>
+                </tr>
+                <tr>
+                    <td>Adalar</td>
+                    <td>0.50</td>
+                    <td>16,000</td>
+                    <td>11.2</td>
+                    <td><strong>0.45</strong></td>
+                </tr>
+            </table>
+
+            <div class="note">
+                <strong>✓ Sonuç:</strong> Kartal ve Beykoz benzer tonlarda, Adalar düşük nüfusa rağmen abartılmıyor!
+            </div>
+        </div>
+
+        <!-- İlçe vs Mahalle -->
+        <div class="card">
+            <h2>⚖️ İlçe ve Mahalle Aynı Yöntemi Kullanıyor</h2>
+
+            <div class="comparison">
+                <div class="comparison-box">
+                    <div class="icon">🏛️</div>
+                    <h3>İlçe Seviyesi</h3>
+                    <ul>
+                        <li><strong>Formül:</strong> Toplam / ⁴√Nüfus × 10</li>
+                        <li><strong>Nüfus aralığı:</strong> 16K - 700K</li>
+                        <li><strong>4. kök etkisi:</strong> 11 - 29</li>
+                    </ul>
+                </div>
+                <div class="comparison-box mahalle">
+                    <div class="icon">🏘️</div>
+                    <h3>Mahalle Seviyesi</h3>
+                    <ul>
+                        <li><strong>Formül:</strong> Katsayı / ⁴√Nüfus × 10</li>
+                        <li><strong>Nüfus aralığı:</strong> 1K - 70K</li>
+                        <li><strong>Min eşik:</strong> 1,000 nüfus</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="warning">
+                <strong>⚠️ Minimum Eşik:</strong> 1,000'den az nüfuslu mahalleler, minimum 1,000 olarak hesaplanır.
+                Bu, çok küçük mahallelerin abartılı görünmesini engeller.
+            </div>
+        </div>
+
+        <!-- Bilimsel Temel -->
+        <div class="card">
+            <h2>🔬 Bilimsel Temel</h2>
+            <p>Kök ölçekleme (power-law scaling), büyük farkları sıkıştırmak için yaygın kullanılan bir yöntemdir:</p>
+            <ul>
+                <li><strong>4. Kök (n^0.25):</strong> En yumuşak - çok büyük farkları dengeler</li>
+                <li><strong>Karekök (n^0.5):</strong> Orta düzey sıkıştırma</li>
+                <li><strong>Küp kök (n^0.33):</strong> Logaritmik yaklaşım</li>
+            </ul>
+            <div class="note">
+                <strong>📚 Referans:</strong> Bu yaklaşım, coğrafi görselleştirme ve choropleth haritalarında
+                "variance-stabilizing transformation" olarak bilinir.
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>İstanbul Sosyal Harita Projesi - 2026</p>
+        </div>
+    </div>
+</body>
+
+</html>

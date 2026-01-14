@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İlçe Sorumluları</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fafafa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 50px;
+        }
+
+        /* Ana Seçimler */
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 280px);
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .main-card {
+            background: #fff;
+            border: 2px solid #e8e8e8;
+            border-radius: 16px;
+            padding: 40px 30px;
+            text-align: center;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .main-card:hover {
+            border-color: #667eea;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+        }
+
+        .main-card.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+        }
+
+        .main-card-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+        }
+
+        .main-card-icon svg {
+            width: 32px;
+            height: 32px;
+            stroke: #fff;
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .main-card h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+
+        .main-card p {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        /* Alt Araçlar */
+        .tools-section {
+            display: none;
+            max-width: 960px;
+            width: 100%;
+        }
+
+        .tools-section.visible {
+            display: block;
+        }
+
+        .tools-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .tools-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .back-btn {
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            border-color: #333;
+            color: #333;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 220px));
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 24px 20px;
+            text-align: center;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: #333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f5f5f5;
+            border-radius: 10px;
+        }
+
+        .card-icon svg {
+            width: 20px;
+            height: 20px;
+            stroke: #333;
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .card h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        .card p {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #333;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 500;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 640px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>İlçe Sorumluları</h1>
+    <p class="subtitle">Saha Koordinasyon Araçları</p>
+
+    <!-- Ana Seçimler -->
+    <div class="main-grid" id="mainGrid">
+        <a href="istanbul_harita_v2.html" class="main-card">
+            <div class="main-card-icon">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+            </div>
+            <h2>Harita</h2>
+            <p>İstanbul sosyal haritası - İlçe ve mahalle bazlı analiz</p>
+        </a>
+
+        <div class="main-card" onclick="showTools()">
+            <div class="main-card-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7z" />
+                    <path d="M4 12h16M12 4v16" />
+                </svg>
+            </div>
+            <h2>Veri Araçları</h2>
+            <p>CSV dönüştürme ve veri işleme araçları</p>
+        </div>
+    </div>
+
+    <!-- Veri Araçları Bölümü -->
+    <div class="tools-section" id="toolsSection">
+        <div class="tools-header">
+            <h3>Veri Araçları</h3>
+            <button class="back-btn" onclick="hideTools()">← Ana Sayfa</button>
+        </div>
+
+        <div class="grid">
+            <a href="csv_birlestir.html" class="card">
+                <div class="badge">ÖNERİLEN</div>
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                </div>
+                <h2>CSV Birleştirici</h2>
+                <p>3 CSV dosyasını tek adımda işler ve birleşik rapor üretir</p>
+            </a>
+
+            <a href="gorusme_gozlem.html" class="card">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                </div>
+                <h2>Görüşme Gözlem</h2>
+                <p>Gözlem formu verilerini işler, pivot tablolar oluşturur</p>
+            </a>
+
+            <a href="gorusme_durum.html" class="card">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+                <h2>Görüşme Durum</h2>
+                <p>Durum bilgisi verilerini işler, tekilleştirir</p>
+            </a>
+
+            <a href="hizmet_bilgileri.html" class="card">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                </div>
+                <h2>Hizmet Bilgileri</h2>
+                <p>Hizmet formunu işler, virgüllü değerleri ayırır</p>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function showTools() {
+            document.getElementById('mainGrid').style.display = 'none';
+            document.getElementById('toolsSection').classList.add('visible');
+        }
+
+        function hideTools() {
+            document.getElementById('mainGrid').style.display = 'grid';
+            document.getElementById('toolsSection').classList.remove('visible');
+        }
+    </script>
+</body>
+
+</html>
