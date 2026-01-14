@@ -1,0 +1,1018 @@
+{
+  "AŞIKVEYSEL": {
+    "ilce": "ATAŞEHIR",
+    "ses": 0.0356
+  },
+  "ATATÜRK": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0173
+  },
+  "BARBAROS": {
+    "ilce": "ATAŞEHIR",
+    "ses": 0.0228
+  },
+  "ESATPAŞA": {
+    "ilce": "ATAŞEHIR",
+    "ses": 0.0154
+  },
+  "FERHATPAŞA": {
+    "ilce": "ÇATALCA",
+    "ses": 0.0957
+  },
+  "FETIH": {
+    "ilce": "ATAŞEHIR",
+    "ses": 0.0021
+  },
+  "İÇERENKÖY": {
+    "ilce": "ATAŞEHIR",
+    "ses": 0.0046
+  },
+  "İNÖNÜ": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0011
+  },
+  "KAYIŞDAĞI": {
+    "ilce": "ATAŞEHIR",
+    "ses": 0.0189
+  },
+  "KÜÇÜKBAKKALKÖY": {
+    "ilce": "ATAŞEHIR",
+    "ses": 0.0024
+  },
+  "MEVLANA": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0289
+  },
+  "MIMAR SINAN": {
+    "ilce": "TUZLA",
+    "ses": 0.0531
+  },
+  "MUSTAFA KEMAL": {
+    "ilce": "ATAŞEHIR",
+    "ses": 0.0348
+  },
+  "ÖRNEK": {
+    "ilce": "ATAŞEHIR",
+    "ses": 0.0212
+  },
+  "YENI ÇAMLICA": {
+    "ilce": "ATAŞEHIR",
+    "ses": 0.0372
+  },
+  "YENISAHRA": {
+    "ilce": "ATAŞEHIR",
+    "ses": 0.0384
+  },
+  "YENIŞEHIR": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0161
+  },
+  "AMBARLI": {
+    "ilce": "AVCILAR",
+    "ses": 0.0346
+  },
+  "CIHANGIR": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0051
+  },
+  "DENIZKÖŞKLER": {
+    "ilce": "AVCILAR",
+    "ses": 0.0277
+  },
+  "FIRUZKÖY": {
+    "ilce": "AVCILAR",
+    "ses": 0.0301
+  },
+  "GÜMÜŞPALA": {
+    "ilce": "AVCILAR",
+    "ses": 0.0209
+  },
+  "MERKEZ": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0007
+  },
+  "MUSTAFA KEMALPAŞA": {
+    "ilce": "AVCILAR",
+    "ses": 0.0216
+  },
+  "TAHTAKALE": {
+    "ilce": "AVCILAR",
+    "ses": 0.0453
+  },
+  "ÜNIVERSITE": {
+    "ilce": "AVCILAR",
+    "ses": 0.0126
+  },
+  "YEŞILKENT": {
+    "ilce": "AVCILAR",
+    "ses": 0.1013
+  },
+  "ATAKÖY 1. KISIM": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.0144
+  },
+  "ATAKÖY 2-5-6. KISIM": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.0126
+  },
+  "ATAKÖY 3-4-11. KISIM": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.0143
+  },
+  "ATAKÖY 7-8-9-10. KISIM": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.011
+  },
+  "BASINKÖY": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.0028
+  },
+  "CEVIZLIK": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.039
+  },
+  "KARTALTEPE": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0101
+  },
+  "OSMANIYE": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.0459
+  },
+  "SAKIZAĞACI": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.0498
+  },
+  "ŞENLIKKÖY": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.012
+  },
+  "YENIMAHALLE": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.0387
+  },
+  "YEŞILKÖY": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.0108
+  },
+  "YEŞILYURT": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.0005
+  },
+  "ZEYTINLIK": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.047
+  },
+  "ZUHURATBABA": {
+    "ilce": "BAKIRKÖY",
+    "ses": 0.0369
+  },
+  "ABBASAĞA": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0516
+  },
+  "AKAT": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0125
+  },
+  "ARNAVUTKÖY": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0164
+  },
+  "BALMUMCU": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0151
+  },
+  "BEBEK": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0091
+  },
+  "CIHANNÜMA": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0164
+  },
+  "DIKILITAŞ": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0387
+  },
+  "ETILER": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0084
+  },
+  "GAYRETTEPE": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0074
+  },
+  "KONAKLAR": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0018
+  },
+  "KURUÇEŞME": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0143
+  },
+  "KÜLTÜR": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0029
+  },
+  "LEVAZIM": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0018
+  },
+  "LEVENT": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0165
+  },
+  "MECIDIYE": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0396
+  },
+  "MURADIYE": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0334
+  },
+  "NISBETIYE": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0055
+  },
+  "ORTAKÖY": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0395
+  },
+  "SINANPAŞA": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0315
+  },
+  "TÜRKALI": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0373
+  },
+  "ULUS": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0101
+  },
+  "VIŞNEZADE": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0133
+  },
+  "YILDIZ": {
+    "ilce": "BEŞIKTAŞ",
+    "ses": 0.0231
+  },
+  "ARAP CAMI": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0038
+  },
+  "ASMALI MESCIT": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0033
+  },
+  "BEDRETTIN": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0016
+  },
+  "BOSTAN": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0343
+  },
+  "BÜLBÜL": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0331
+  },
+  "CAMIIKEBIR": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0072
+  },
+  "ÇATMA MESCIT": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0037
+  },
+  "ÇUKUR": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0364
+  },
+  "FETIHTEPE": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0145
+  },
+  "GÜMÜŞSUYU": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0076
+  },
+  "HACIAHMET": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0396
+  },
+  "HACIMIMI": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0126
+  },
+  "HALICIOĞLU": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0125
+  },
+  "HÜSEYINAĞA": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0051
+  },
+  "İSTIKLAL": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0295
+  },
+  "KADIMEHMET EFENDI": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0037
+  },
+  "KALYONCU KULLUĞU": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0175
+  },
+  "KAMER HATUN": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.006
+  },
+  "KAPTANPAŞA": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.005
+  },
+  "KATIPMUSTAFA ÇELEBI": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0117
+  },
+  "KEÇECI PIRI": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.009
+  },
+  "KEMANKEŞ KARAMUSTAFAPAŞA": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0041
+  },
+  "KILIÇALI PAŞA": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0028
+  },
+  "KOCATEPE": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0307
+  },
+  "KULAKSIZ": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0068
+  },
+  "KÜÇÜK PIYALE": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0056
+  },
+  "ÖRNEKTEPE": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0184
+  },
+  "PIRIPAŞA": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0117
+  },
+  "PIYALEPAŞA": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.009
+  },
+  "SURURI MEHMET EFENDI": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0031
+  },
+  "SÜTLÜCE": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0058
+  },
+  "ŞAHKULU": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0043
+  },
+  "ŞEHIT MUHTAR": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0154
+  },
+  "YAHYA KAHYA": {
+    "ilce": "BEYOĞLU",
+    "ses": 0.0102
+  },
+  "AYDINLAR": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0472
+  },
+  "BAHŞAYIŞ": {
+    "ilce": "ÇATALCA",
+    "ses": 0.0157
+  },
+  "BAŞAK": {
+    "ilce": "ÇATALCA",
+    "ses": 0.0104
+  },
+  "ÇANAKÇA": {
+    "ilce": "ÇATALCA",
+    "ses": 0.0258
+  },
+  "ÇIFTLIKKÖY": {
+    "ilce": "ÇATALCA",
+    "ses": 0.0356
+  },
+  "FATIH": {
+    "ilce": "TUZLA",
+    "ses": 0.0038
+  },
+  "KALEIÇI": {
+    "ilce": "ÇATALCA",
+    "ses": 0.263
+  },
+  "KARACAKÖY MERKEZ": {
+    "ilce": "ÇATALCA",
+    "ses": 0.0255
+  },
+  "KESTANELIK": {
+    "ilce": "ÇATALCA",
+    "ses": 0.019
+  },
+  "NAKKAŞ": {
+    "ilce": "ÇATALCA",
+    "ses": 0.0106
+  },
+  "OKLALI": {
+    "ilce": "ÇATALCA",
+    "ses": 0.0091
+  },
+  "ORMANLI": {
+    "ilce": "ÇATALCA",
+    "ses": 0.0126
+  },
+  "ÖRCÜNLÜ": {
+    "ilce": "ÇATALCA",
+    "ses": 0.0307
+  },
+  "SUBAŞI": {
+    "ilce": "ÇATALCA",
+    "ses": 0.0109
+  },
+  "YALIKÖY": {
+    "ilce": "ÇATALCA",
+    "ses": 0.0054
+  },
+  "ALEMDAĞ": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0215
+  },
+  "CUMHURIYET": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0005
+  },
+  "ÇAMLIK": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0216
+  },
+  "ÇATALMEŞE": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0321
+  },
+  "EKŞIOĞLU": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0111
+  },
+  "GÜNGÖREN": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0059
+  },
+  "HAMIDIYE": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0282
+  },
+  "HÜSEYINLI": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0077
+  },
+  "KIRAZLIDERE": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0066
+  },
+  "KOÇULLU": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0071
+  },
+  "MEHMET AKIF": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0521
+  },
+  "NIŞANTEPE": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0873
+  },
+  "ÖMERLI": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.019
+  },
+  "REŞADIYE": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.005
+  },
+  "SIRAPINAR": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0104
+  },
+  "SOĞUKPINAR": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0335
+  },
+  "SULTANÇIFTLIĞI": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0129
+  },
+  "TAŞDELEN": {
+    "ilce": "ÇEKMEKÖY",
+    "ses": 0.0243
+  },
+  "19 MAYIS MAHALLESI": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0006
+  },
+  "ACIBADEM": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0119
+  },
+  "BOSTANCI": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0095
+  },
+  "CADDEBOSTAN": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0152
+  },
+  "CAFERAĞA": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0206
+  },
+  "DUMLUPINAR": {
+    "ilce": "KADIKÖY",
+    "ses": 0.047
+  },
+  "EĞITIM": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0329
+  },
+  "ERENKÖY": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0183
+  },
+  "FENERBAHÇE": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0134
+  },
+  "FENERYOLU": {
+    "ilce": "KADIKÖY",
+    "ses": 0.012
+  },
+  "FIKIRTEPE": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0565
+  },
+  "GÖZTEPE": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0098
+  },
+  "HASANPAŞA": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0241
+  },
+  "KOŞUYOLU": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0087
+  },
+  "KOZYATAĞI": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0068
+  },
+  "MERDIVENKÖY": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0142
+  },
+  "OSMANAĞA": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0247
+  },
+  "RASIMPAŞA": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0245
+  },
+  "SAHRAYICEDIT": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0027
+  },
+  "SUADIYE": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0105
+  },
+  "ZÜHTÜPAŞA": {
+    "ilce": "KADIKÖY",
+    "ses": 0.0091
+  },
+  "GÜLTEPE": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0081
+  },
+  "ATALAR": {
+    "ilce": "KARTAL",
+    "ses": 0.0102
+  },
+  "CEVIZLI": {
+    "ilce": "MALTEPE",
+    "ses": 0.0148
+  },
+  "ÇAVUŞOĞLU": {
+    "ilce": "KARTAL",
+    "ses": 0.009
+  },
+  "ESENTEPE": {
+    "ilce": "KARTAL",
+    "ses": 0.0329
+  },
+  "GÜMÜŞPINAR": {
+    "ilce": "KARTAL",
+    "ses": 0.0269
+  },
+  "HÜRRIYET": {
+    "ilce": "KARTAL",
+    "ses": 0.0489
+  },
+  "KARLIKTEPE": {
+    "ilce": "KARTAL",
+    "ses": 0.0104
+  },
+  "KORDONBOYU": {
+    "ilce": "KARTAL",
+    "ses": 0.0101
+  },
+  "ORHANTEPE": {
+    "ilce": "KARTAL",
+    "ses": 0.0103
+  },
+  "ORTA": {
+    "ilce": "TUZLA",
+    "ses": 0.0526
+  },
+  "PETROL İŞ": {
+    "ilce": "KARTAL",
+    "ses": 0.0079
+  },
+  "SOĞANLIK YENI": {
+    "ilce": "KARTAL",
+    "ses": 0.0237
+  },
+  "TOPSELVI": {
+    "ilce": "KARTAL",
+    "ses": 0.0279
+  },
+  "UĞUR MUMCU": {
+    "ilce": "KARTAL",
+    "ses": 0.009
+  },
+  "YAKACIK ÇARŞI": {
+    "ilce": "KARTAL",
+    "ses": 0.013
+  },
+  "YAKACIK YENI": {
+    "ilce": "KARTAL",
+    "ses": 0.0331
+  },
+  "YALI": {
+    "ilce": "MALTEPE",
+    "ses": 0.003
+  },
+  "YUKARI": {
+    "ilce": "KARTAL",
+    "ses": 0.0068
+  },
+  "YUNUS": {
+    "ilce": "KARTAL",
+    "ses": 0.0174
+  },
+  "ATAKENT": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0088
+  },
+  "BEŞYOL": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0117
+  },
+  "CENNET": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.007
+  },
+  "FEVZI ÇAKMAK": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0113
+  },
+  "HALKALI MERKEZ": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0292
+  },
+  "İSTASYON": {
+    "ilce": "TUZLA",
+    "ses": 0.0024
+  },
+  "KANARYA": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0483
+  },
+  "KEMALPAŞA": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.008
+  },
+  "SÖĞÜTLÜ ÇEŞME": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0345
+  },
+  "SULTAN MURAT": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0072
+  },
+  "TEVFIKBEY": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0104
+  },
+  "YARIMBURGAZ": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0275
+  },
+  "YENI MAHALLE": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0133
+  },
+  "YEŞILOVA": {
+    "ilce": "KÜÇÜKÇEKMECE",
+    "ses": 0.0101
+  },
+  "ALTAYÇEŞME": {
+    "ilce": "MALTEPE",
+    "ses": 0.0049
+  },
+  "ALTINTEPE": {
+    "ilce": "MALTEPE",
+    "ses": 0.0071
+  },
+  "AYDINEVLER": {
+    "ilce": "MALTEPE",
+    "ses": 0.0126
+  },
+  "BAĞLARBAŞI": {
+    "ilce": "MALTEPE",
+    "ses": 0.01
+  },
+  "BAŞIBÜYÜK": {
+    "ilce": "MALTEPE",
+    "ses": 0.0382
+  },
+  "BÜYÜKBAKKALKÖY": {
+    "ilce": "MALTEPE",
+    "ses": 0.0085
+  },
+  "ÇINAR": {
+    "ilce": "MALTEPE",
+    "ses": 0.0028
+  },
+  "ESENKENT": {
+    "ilce": "MALTEPE",
+    "ses": 0.0211
+  },
+  "FEYZULLAH": {
+    "ilce": "MALTEPE",
+    "ses": 0.0048
+  },
+  "FINDIKLI": {
+    "ilce": "MALTEPE",
+    "ses": 0.0482
+  },
+  "GIRNE": {
+    "ilce": "MALTEPE",
+    "ses": 0.0128
+  },
+  "GÜLENSU": {
+    "ilce": "MALTEPE",
+    "ses": 0.0598
+  },
+  "GÜLSUYU": {
+    "ilce": "MALTEPE",
+    "ses": 0.0522
+  },
+  "İDEALTEPE": {
+    "ilce": "MALTEPE",
+    "ses": 0.003
+  },
+  "KÜÇÜKYALI MERKEZ": {
+    "ilce": "MALTEPE",
+    "ses": 0.0034
+  },
+  "ZÜMRÜTEVLER": {
+    "ilce": "MALTEPE",
+    "ses": 0.0436
+  },
+  "ABDURRAHMANGAZI": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0095
+  },
+  "AKPINAR": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0362
+  },
+  "EMEK": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0258
+  },
+  "EYÜP SULTAN": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0074
+  },
+  "HILAL": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0323
+  },
+  "KEMAL TÜRKLER": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0103
+  },
+  "MECLIS": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.01
+  },
+  "MERVE": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0263
+  },
+  "OSMANGAZI": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0228
+  },
+  "PAŞAKÖY": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0181
+  },
+  "SAFA": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0227
+  },
+  "SARIGAZI": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0147
+  },
+  "VEYSEL KARANI": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0316
+  },
+  "YENIDOĞAN": {
+    "ilce": "ZEYTINBURNU",
+    "ses": 0.0562
+  },
+  "YUNUS EMRE": {
+    "ilce": "SANCAKTEPE",
+    "ses": 0.0293
+  },
+  "BOZKURT": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0017
+  },
+  "DUATEPE": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0017
+  },
+  "ESKIŞEHIR": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0306
+  },
+  "FERIKÖY": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.024
+  },
+  "FULYA": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0007
+  },
+  "GÜLBAHAR": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0047
+  },
+  "HALASKARGAZI": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0002
+  },
+  "HALIDE EDIP ADIVAR": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0192
+  },
+  "İZZET PAŞA": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0461
+  },
+  "KUŞTEPE": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0532
+  },
+  "MAHMUT ŞEVKET PAŞA": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0566
+  },
+  "PAŞA": {
+    "ilce": "ŞIŞLI",
+    "ses": 0.0516
+  },
+  "YAYLA": {
+    "ilce": "TUZLA",
+    "ses": 0.0006
+  },
+  "AKFIRAT": {
+    "ilce": "TUZLA",
+    "ses": 0.0044
+  },
+  "ANADOLU": {
+    "ilce": "TUZLA",
+    "ses": 0.0088
+  },
+  "AYDINLI": {
+    "ilce": "TUZLA",
+    "ses": 0.0345
+  },
+  "AYDINTEPE": {
+    "ilce": "TUZLA",
+    "ses": 0.0336
+  },
+  "CAMI": {
+    "ilce": "TUZLA",
+    "ses": 0.0043
+  },
+  "EVLIYA ÇELEBI": {
+    "ilce": "TUZLA",
+    "ses": 0.0057
+  },
+  "İÇMELER": {
+    "ilce": "TUZLA",
+    "ses": 0.0478
+  },
+  "MESCIT": {
+    "ilce": "TUZLA",
+    "ses": 0.008
+  },
+  "ORHANLI": {
+    "ilce": "TUZLA",
+    "ses": 0.0644
+  },
+  "POSTANE": {
+    "ilce": "TUZLA",
+    "ses": 0.0084
+  },
+  "ŞIFA": {
+    "ilce": "TUZLA",
+    "ses": 0.0579
+  },
+  "TEPEÖREN": {
+    "ilce": "TUZLA",
+    "ses": 0.0036
+  },
+  "BEŞTELSIZ": {
+    "ilce": "ZEYTINBURNU",
+    "ses": 0.0514
+  },
+  "ÇIRPICI": {
+    "ilce": "ZEYTINBURNU",
+    "ses": 0.0701
+  },
+  "GÖKALP": {
+    "ilce": "ZEYTINBURNU",
+    "ses": 0.0463
+  },
+  "MALTEPE": {
+    "ilce": "ZEYTINBURNU",
+    "ses": 0.0028
+  },
+  "MERKEZEFENDI": {
+    "ilce": "ZEYTINBURNU",
+    "ses": 0.036
+  },
+  "NURIPAŞA": {
+    "ilce": "ZEYTINBURNU",
+    "ses": 0.0486
+  },
+  "SEYITNIZAM": {
+    "ilce": "ZEYTINBURNU",
+    "ses": 0.0369
+  },
+  "SÜMER": {
+    "ilce": "ZEYTINBURNU",
+    "ses": 0.0661
+  },
+  "TELSIZ": {
+    "ilce": "ZEYTINBURNU",
+    "ses": 0.0641
+  },
+  "VELIEFENDI": {
+    "ilce": "ZEYTINBURNU",
+    "ses": 0.0488
+  },
+  "YEŞILTEPE": {
+    "ilce": "ZEYTINBURNU",
+    "ses": 0.0261
+  }
+}
