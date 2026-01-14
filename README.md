@@ -1,54 +1,50 @@
-# İstanbul Sosyal Harita
+# Görüşme Formu CSV Normalizer
 
-İstanbul genelinde sosyal sorunların ilçe ve mahalle bazında görselleştirilmesi.
+Formidable Forms'dan export edilen **Görüşme ve Gözlem Formu** CSV dosyalarını normalize Excel formatına dönüştürür.
 
-## 🚀 Başlangıç
+## 🚀 Kullanım
 
-1. Projeyi klonlayın
-2. Herhangi bir HTTP sunucu ile çalıştırın:
-   ```bash
-   npx serve .
-   ```
-3. Tarayıcıda [http://localhost:3000](http://localhost:3000) adresini açın
+1. [**index.html**](./index.html) dosyasını tarayıcıda açın
+2. CSV dosyasını sürükleyip bırakın
+3. **Excel Dosyasını İndir** butonuna tıklayın
 
-## 📁 Dosya Yapısı
+> Tüm işlemler tarayıcınızda gerçekleşir. Veriler sunucuya gönderilmez.
 
-```
-istanbul-sosyal-harita/
-├── index.html              # Ana sayfa
-├── istanbul_harita_v2.html # Harita uygulaması
-├── nufus_metodoloji.html   # Metodoloji açıklaması
-├── ilçe.geojson           # İlçe sınırları
-├── mahalle.json           # Mahalle sınırları
-├── mahalle_nufus.xlsx     # Nüfus verileri
-└── veri/
-    └── veri.xlsx          # Sosyal veri
-```
+## 📊 Çıktı Formatı
 
-## 🎯 Özellikler
+### Sheet 1: `Sosyal_Sorunlar`
+| Sütun | Açıklama |
+|-------|----------|
+| Sicil No | Personel sicil numarası |
+| Aktör ID | Kurum kimliği |
+| Üst Grup | Soru kategorisi |
+| Alt Grup | Alt soru |
+| Değer | Puan (0-5) |
 
-- 📍 İlçe ve mahalle bazında sosyal sorun haritası
-- 🎨 Nüfus normalizasyonu (4. kök yöntemi)
-- 🔍 Üst ve alt grup filtreleme
-- 📊 Dezavantajlı grup analizi
-- 📱 Responsive tasarım
+### Sheet 2: `Mahalle_Haritalama`
+| Sütun | Açıklama |
+|-------|----------|
+| Sicil No | Personel sicil numarası |
+| Aktör ID | Kurum kimliği |
+| İlçe | İlçe adı |
+| Üst Grup | Soru kategorisi |
+| Alt Grup | Seçilen sorun |
+| Mahalle | Tek mahalle (virgülle ayrılanlar bölünür) |
 
-## 📐 Metodoloji
+## ⚙️ Dinamik Sütun Desteği
 
-Nüfus normalizasyonu için **4. kök (n^0.25)** yöntemi kullanılmaktadır:
+Form genişlese bile çalışır. Sistem **pattern-based sütun tanıma** kullanır:
 
-```
-Değer = Toplam / ⁴√Nüfus × 10
-```
+- `"Soru Metni? - Alt Seçenek"` formatındaki sütunlar otomatik algılanır
+- `İlçe Seçiniz` → `Mahalle Seçiniz` → `Seçim Yapınız` üçlüleri otomatik eşleşir
 
-Bu yöntem nüfus etkisini %25 seviyesinde tutar, küçük nüfuslu bölgelerin abartılı görünmesini engeller.
+## 🌐 GitHub Pages
 
-Detaylı açıklama: [Metodoloji Sayfası](nufus_metodoloji.html)
+Bu repository GitHub Pages ile yayınlanabilir:
+1. Settings → Pages → Source: `main` branch
+2. URL: `https://[username].github.io/[repo-name]/`
 
-## 📝 Lisans
+## 📁 Dosyalar
 
-MIT License
-
----
-
-*İstanbul Sosyal Harita Projesi - 2026*
+- `index.html` - Web uygulaması
+- `csv_to_excel_converter.py` - Python alternatifi (opsiyonel)
