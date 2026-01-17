@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atama Listesi</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fafafa;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header .subtitle {
+            color: #888;
+            font-size: 14px;
+        }
+
+        .header-back-link {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: #f5f5f5;
+            transition: all 0.2s;
+        }
+
+        .header-back-link:hover {
+            background: #e8e8e8;
+            color: #333;
+        }
+
+        /* Gallery View */
+        .gallery-view {
+            padding: 40px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 200px));
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .ilce-card {
+            background: #fff;
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ilce-card:hover {
+            border-color: #667eea;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+        }
+
+        .ilce-card-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+        }
+
+        .ilce-card-icon svg {
+            width: 24px;
+            height: 24px;
+            stroke: #fff;
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .ilce-card h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+        }
+
+        .ilce-card .count {
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        /* Detail View */
+        .detail-view {
+            display: none;
+            height: calc(100vh - 80px);
+        }
+
+        .detail-view.visible {
+            display: flex;
+        }
+
+        /* Map Container */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Zoom control gizle */
+        .leaflet-control-zoom {
+            display: none !important;
+        }
+
+        /* Pie Chart Icon */
+        .pie-icon svg {
+            display: block;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        /* List Panel */
+        .list-panel {
+            width: 600px;
+            background: #fff;
+            border-left: 1px solid #e8e8e8;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .list-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e8e8e8;
+            background: #fafafa;
+        }
+
+        .list-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+
+        .list-header .stats {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        /* Veri Toggle Butonları */
+        .data-toggle {
+            display: flex;
+            gap: 8px;
+        }
+
+        .data-toggle button {
+            flex: 1;
+            padding: 10px 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .data-toggle button:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .data-toggle button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: #fff;
+        }
+
+        /* Görüşme Filtre Butonları */
+        .filter-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 5px 10px;
+            border: 1px solid #e8e8e8;
+            border-radius: 16px;
+            background: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            border-color: #667eea;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: #fff;
+        }
+
+        .filter-btn .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Görüşme Badge */
+        .gorusme-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 600;
+            margin-left: auto;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* Durum renkleri */
+        .durum-gerceklestirildi {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .durum-randevu-verildi {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .durum-randevu-tarih {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .durum-reddetti {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .durum-adres-hatali {
+            background: #fce4ec;
+            color: #ad1457;
+        }
+
+        .durum-temas-kurulmadi {
+            background: #f5f5f5;
+            color: #757575;
+        }
+
+        .dot-gerceklestirildi {
+            background: #43a047;
+        }
+
+        .dot-randevu-verildi {
+            background: #1976d2;
+        }
+
+        .dot-randevu-tarih {
+            background: #fb8c00;
+        }
+
+        .dot-reddetti {
+            background: #e53935;
+        }
+
+        .dot-adres-hatali {
+            background: #d81b60;
+        }
+
+        .dot-temas-kurulmadi {
+            background: #9e9e9e;
+        }
+
+        .list-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        /* Address Item */
+        .address-item {
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .address-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .address-item.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+        }
+
+        .address-item.hidden {
+            display: none;
+        }
+
+        .address-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .address-id {
+            background: #667eea;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 5px 10px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .address-id.muhtar {
+            background: #43a047;
+        }
+
+        .address-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+            line-height: 1.5;
+            flex: 1;
+        }
+
+        .address-detail {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.5;
+            padding: 8px 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .address-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .address-tag {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .address-tag.kategori {
+            background: #e8eaf6;
+            color: #3f51b5;
+        }
+
+        .address-tag.alan {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .address-tag.grup {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+
+        /* Legend */
+        .map-legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: #fff;
+            padding: 14px 18px;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            max-width: 240px;
+        }
+
+        .legend-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #333;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .legend-item:hover {
+            background: #f5f5f5;
+        }
+
+        .legend-item.active {
+            background: #e8eaf6;
+            font-weight: 600;
+        }
+
+        .legend-item.dimmed {
+            opacity: 0.4;
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-clear {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 11px;
+            color: #667eea;
+            cursor: pointer;
+            text-align: center;
+            display: none;
+        }
+
+        .legend-clear.visible {
+            display: block;
+        }
+
+        .legend-clear:hover {
+            text-decoration: underline;
+        }
+
+        /* Loading */
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1001;
+            background: #fff;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+            font-size: 14px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            stroke: #ddd;
+            margin-bottom: 16px;
+        }
+
+        /* Popup */
+        .leaflet-popup-content-wrapper {
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .leaflet-popup-content {
+            margin: 12px 14px;
+            font-family: inherit;
+        }
+
+        .popup-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #888;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .popup-item {
+            margin-bottom: 8px;
+        }
+
+        .popup-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .popup-type {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .popup-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            margin-top: 2px;
+        }
+
+        .popup-id {
+            font-size: 10px;
+            color: #999;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header" id="header">
+        <a href="index.html" class="header-back-link" id="headerBackLink">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Ana Sayfa
+        </a>
+        <h1>Atama Listesi</h1>
+        <p class="subtitle">Atama yapılan kurumlar - İlçe bazlı görünüm</p>
+        <a href="atama_ozet.html" class="header-back-link" style="left: auto; right: 20px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            Özet Tablo
+        </a>
+    </div>
+
+    <!-- Gallery View -->
+    <div class="gallery-view" id="galleryView">
+        <div class="gallery-grid" id="galleryGrid">
+            <!-- İlçe kartları buraya gelecek -->
+        </div>
+    </div>
+
+    <!-- Detail View -->
+    <div class="detail-view" id="detailView">
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-legend" id="mapLegend"></div>
+        </div>
+        <div class="list-panel">
+            <div class="list-header">
+                <h2 id="listTitle">İlçe Adı</h2>
+                <div class="stats" id="listStats">0 kurum</div>
+                <div class="data-toggle" id="dataToggle">
+                    <button class="active" data-type="atama" onclick="switchDataType('atama')">Atama Listesi</button>
+                    <button data-type="muhtar" onclick="switchDataType('muhtar')">Muhtarlar</button>
+                </div>
+                <div class="filter-row" id="filterRow">
+                    <!-- Dinamik olarak doldurulacak -->
+                </div>
+            </div>
+            <div class="list-content" id="listContent">
+                <!-- Adres listesi buraya gelecek -->
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">Veri yükleniyor...</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Ana Kategori Renkleri
+        const KATEGORI_COLORS = {
+            'İLÇE BELEDİYELERİ': '#667eea',
+            'ILCE BELEDIYELERI': '#667eea',
+            'KAMU': '#43a047',
+            'ÖZEL': '#fb8c00',
+            'OZEL': '#fb8c00',
+            'STÖ': '#8e24aa',
+            'STO': '#8e24aa',
+            'SHDB': '#e53935',
+            'İBB': '#00acc1',
+            'IBB': '#00acc1',
+            'MUHTARLIK': '#43a047'
+        };
+
+        // Renk koyulaştırma
+        function darkenColor(hex, factor) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            const r = Math.max(0, Math.floor((num >> 16) * (1 - factor * 0.15)));
+            const g = Math.max(0, Math.floor(((num >> 8) & 0x00FF) * (1 - factor * 0.15)));
+            const b = Math.max(0, Math.floor((num & 0x0000FF) * (1 - factor * 0.15)));
+            return '#' + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        // Normalize function
+        function normalizeTr(str) {
+            return (str || '').toUpperCase()
+                .replace(/İ/g, 'I').replace(/Ş/g, 'S').replace(/Ğ/g, 'G')
+                .replace(/Ü/g, 'U').replace(/Ö/g, 'O').replace(/Ç/g, 'C')
+                .replace(/ı/g, 'I').replace(/i/g, 'I')
+                .replace(/ş/g, 'S').replace(/ğ/g, 'G').replace(/ü/g, 'U')
+                .replace(/ö/g, 'O').replace(/ç/g, 'C');
+        }
+
+        // State
+        let allAtamaData = [];
+        let allMuhtarData = [];
+        let gorusmeData = {}; // Aktör ID -> görüşme durumu map
+        let gorusmeDurumlari = []; // Benzersiz görüşme durumları
+        let ilceGroups = {};
+        let muhtarGroups = {};
+        let map = null;
+        let markerLayer = null;
+        let currentIlce = null;
+        let currentItems = [];
+        let selectedKategori = null;
+        let currentDataType = 'atama'; // 'atama' veya 'muhtar'
+        let focusedItemIndex = null; // Seçili öğe
+        let gorusmeFilter = 'all'; // 'all' veya durum adı
+
+        // Görüşme durumu -> CSS sınıfı eşlemesi
+        const GORUSME_SINIFLAR = {
+            'Görüşme Gerçekleştirildi': 'gerceklestirildi',
+            'Randevu Verildi': 'randevu-verildi',
+            'Randevu Tarihi Belirtilmedi': 'randevu-tarih',
+            'Görüşmeyi Reddetti': 'reddetti',
+            'Adres Hatalı/Güncel Değil': 'adres-hatali',
+            'Temas Kurulmadı': 'temas-kurulmadi'
+        };
+
+        // Görüşme durumu sınıfını al
+        function getGorusmeSinif(durum) {
+            for (const [key, value] of Object.entries(GORUSME_SINIFLAR)) {
+                if (durum && durum.includes(key.substring(0, 10))) {
+                    return value;
+                }
+            }
+            return 'temas-kurulmadi';
+        }
+
+        // Kümeleme eşiği
+        function getClusterThreshold() {
+            if (!map) return 0.005;
+            const zoom = map.getZoom();
+            if (zoom >= 16) return 0.0005;
+            if (zoom >= 15) return 0.001;
+            if (zoom >= 14) return 0.002;
+            if (zoom >= 13) return 0.003;
+            if (zoom >= 12) return 0.005;
+            return 0.008;
+        }
+
+        // Zoom seviyesine göre marker boyut çarpanı
+        function getMarkerScale() {
+            if (!map) return 1;
+            const zoom = map.getZoom();
+            // Zoom 10: 0.8x, Zoom 12: 1x, Zoom 14: 1.3x, Zoom 16+: 1.5x (cap)
+            if (zoom <= 10) return 0.8;
+            if (zoom <= 12) return 1.0;
+            if (zoom <= 14) return 1.2;
+            if (zoom <= 16) return 1.4;
+            return 1.5; // Maximum cap - daha fazla büyümez
+        }
+
+        // Pie Chart SVG
+        function createPieSvg(items, radius) {
+            const counts = {};
+            items.forEach(i => {
+                const kat = normalizeTr(i['ANA KATEGORİ'] || '');
+                counts[kat] = (counts[kat] || 0) + 1;
+            });
+
+            const total = items.length;
+            const entries = Object.entries(counts);
+            const size = radius * 2;
+            const center = size / 2;
+            const r = (size / 2) - 2;
+
+            // Minimum font boyutu 10px, okunabilirlik için
+            const fontSize = Math.max(10, r * 0.8);
+            const fontSizeMulti = Math.max(9, r * 0.65);
+
+            let svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
+
+            svg += `<defs>
+                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.25"/>
+                </filter>
+            </defs>`;
+
+            if (entries.length === 1) {
+                const color = KATEGORI_COLORS[entries[0][0]] || '#666';
+                const count = entries[0][1];
+                const finalColor = count > 1 ? darkenColor(color, Math.min(count - 1, 5)) : color;
+                svg += `<circle cx="${center}" cy="${center}" r="${r}" fill="${finalColor}" stroke="white" stroke-width="2" filter="url(#shadow)" />`;
+                if (count > 1) {
+                    svg += `<text x="${center}" y="${center + fontSize * 0.35}" text-anchor="middle" fill="white" font-size="${fontSize}" font-weight="bold" style="text-shadow: 0 1px 3px rgba(0,0,0,0.6)">${count}</text>`;
+                }
+            } else {
+                let currentAngle = -90;
+                entries.forEach(([kat, count]) => {
+                    const sliceAngle = (count / total) * 360;
+                    const x1 = center + r * Math.cos(Math.PI * currentAngle / 180);
+                    const y1 = center + r * Math.sin(Math.PI * currentAngle / 180);
+                    currentAngle += sliceAngle;
+                    const x2 = center + r * Math.cos(Math.PI * currentAngle / 180);
+                    const y2 = center + r * Math.sin(Math.PI * currentAngle / 180);
+                    const largeArcFlag = sliceAngle > 180 ? 1 : 0;
+                    const color = KATEGORI_COLORS[kat] || '#666';
+                    svg += `<path d="M ${center} ${center} L ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2} Z" fill="${color}" stroke="white" stroke-width="1" />`;
+                });
+                svg += `<circle cx="${center}" cy="${center}" r="${r}" fill="none" stroke="white" stroke-width="2" filter="url(#shadow)" />`;
+                svg += `<text x="${center}" y="${center + fontSizeMulti * 0.35}" text-anchor="middle" fill="white" font-size="${fontSizeMulti}" font-weight="bold" style="text-shadow: 0 1px 3px rgba(0,0,0,0.7)">${total}</text>`;
+            }
+            svg += `</svg>`;
+            return svg;
+        }
+
+        // Load Data
+        async function loadData() {
+            try {
+                // Atama ve muhtar verisi
+                const response = await fetch('atama_listesi.xlsx');
+                const buffer = await response.arrayBuffer();
+                const workbook = XLSX.read(buffer, { type: 'array' });
+
+                // Atama verisi (Adresler sayfası)
+                const atamaSheet = workbook.Sheets['Adresler'];
+                const atamaData = XLSX.utils.sheet_to_json(atamaSheet);
+                allAtamaData = atamaData.filter(row => row['Atama Durumu'] === 'Evet');
+
+                // Muhtar verisi (Muhtarlar sayfası)
+                const muhtarSheet = workbook.Sheets['Muhtarlar'];
+                if (muhtarSheet) {
+                    allMuhtarData = XLSX.utils.sheet_to_json(muhtarSheet);
+                    console.log('Muhtarlar sayfasından', allMuhtarData.length, 'kayıt yüklendi');
+                }
+
+                // Görüşme durumu verisi (veri.xlsx)
+                try {
+                    const gorusmeResponse = await fetch('veri/veri.xlsx');
+                    const gorusmeBuffer = await gorusmeResponse.arrayBuffer();
+                    const gorusmeWorkbook = XLSX.read(gorusmeBuffer, { type: 'array' });
+
+                    const gorusmeSheet = gorusmeWorkbook.Sheets['Gorusme_Durum_Birlestiril'];
+                    if (gorusmeSheet) {
+                        const gorusmeRawData = XLSX.utils.sheet_to_json(gorusmeSheet);
+                        const durumSet = new Set();
+
+                        // Aktör ID -> görüşme durumu map oluştur
+                        gorusmeRawData.forEach(row => {
+                            const aktorId = (row['Aktör ID'] || '').toString().trim();
+                            const durum = (row['Görüşme Yapıldı mı?'] || '').toString().trim();
+                            if (aktorId) {
+                                gorusmeData[aktorId] = {
+                                    durum: durum,
+                                    tarih: row['Tarih'] || ''
+                                };
+                                if (durum) durumSet.add(durum);
+                            }
+                        });
+
+                        // Benzersiz durumları kaydet
+                        gorusmeDurumlari = Array.from(durumSet).sort();
+                        console.log('Görüşme verisi yüklendi:', Object.keys(gorusmeData).length, 'kayıt');
+                        console.log('Benzersiz durumlar:', gorusmeDurumlari);
+                    }
+                } catch (e) {
+                    console.warn('Görüşme verisi yüklenemedi:', e);
+                }
+
+                // İlçelere göre grupla - Atama
+                ilceGroups = {};
+                allAtamaData.forEach(row => {
+                    let ilce = (row['ILCE'] || '').toString().trim();
+                    const ilceKey = normalizeTr(ilce);
+                    if (!ilceGroups[ilceKey]) {
+                        ilceGroups[ilceKey] = { name: ilce, items: [] };
+                    }
+                    ilceGroups[ilceKey].items.push(row);
+                });
+
+                // İlçelere göre grupla - Muhtar
+                muhtarGroups = {};
+                allMuhtarData.forEach(row => {
+                    let ilce = (row['ILCE'] || '').toString().trim();
+                    const ilceKey = normalizeTr(ilce);
+                    if (!muhtarGroups[ilceKey]) {
+                        muhtarGroups[ilceKey] = { name: ilce, items: [] };
+                    }
+                    muhtarGroups[ilceKey].items.push(row);
+                });
+
+                document.getElementById('loading').style.display = 'none';
+                renderGallery();
+
+            } catch (err) {
+                console.error('Veri yüklenemedi:', err);
+                document.getElementById('loading').textContent = 'Hata: ' + err.message;
+            }
+        }
+
+        // Görüşme durumunu al - gerçek durum metnini döndürür
+        function getGorusmeDurum(item) {
+            const id = (item['ID'] || '').toString().trim();
+            const gorusme = gorusmeData[id];
+
+            if (!gorusme || !gorusme.durum) {
+                return 'Temas Kurulmadı';
+            }
+
+            return gorusme.durum;
+        }
+
+        // Render Gallery
+        function renderGallery() {
+            const grid = document.getElementById('galleryGrid');
+            const sortedIlces = Object.keys(ilceGroups).sort((a, b) => {
+                return ilceGroups[b].items.length - ilceGroups[a].items.length;
+            });
+
+            if (sortedIlces.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <p>Henüz atama yapılmış kurum bulunmuyor.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = sortedIlces.map(ilceKey => {
+                const ilce = ilceGroups[ilceKey];
+                return `
+                    <div class="ilce-card" onclick="showDetail('${ilceKey}')">
+                        <div class="ilce-card-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <h3>${ilce.name}</h3>
+                        <div class="count">${ilce.items.length} kurum</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Parse Coordinates
+        function parseCoordinates(coordStr) {
+            if (!coordStr) return null;
+            const parts = coordStr.toString().split(',').map(s => parseFloat(s.trim()));
+            if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                return { lat: parts[0], lng: parts[1] };
+            }
+            return null;
+        }
+
+        // Show Gallery View (detaydan geri dön)
+        function showGallery() {
+            currentIlce = null;
+            selectedKategori = null;
+            focusedItemIndex = null;
+
+            document.getElementById('detailView').classList.remove('visible');
+            document.getElementById('galleryView').style.display = 'block';
+
+            // Header butonu - Ana Sayfa
+            const backLink = document.getElementById('headerBackLink');
+            backLink.href = 'index.html';
+            backLink.onclick = null;
+            backLink.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Ana Sayfa
+            `;
+        }
+
+        // Show Detail View
+        function showDetail(ilceKey) {
+            currentIlce = ilceKey;
+            selectedKategori = null;
+            focusedItemIndex = null;
+            currentDataType = 'atama';
+
+            document.getElementById('galleryView').style.display = 'none';
+            document.getElementById('detailView').classList.add('visible');
+
+            // Header butonu - Listeye dön
+            const backLink = document.getElementById('headerBackLink');
+            backLink.href = '#';
+            backLink.onclick = function (e) { e.preventDefault(); showGallery(); return false; };
+            backLink.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Geri
+            `;
+
+            // Toggle butonlarını resetle
+            document.querySelectorAll('.data-toggle button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === 'atama');
+            });
+
+            // Init map if not exists
+            if (!map) {
+                map = L.map('map', {
+                    center: [41.0082, 28.9784],
+                    zoom: 12,
+                    zoomControl: false,
+                    attributionControl: false
+                });
+
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 18
+                }).addTo(map);
+
+                markerLayer = L.layerGroup().addTo(map);
+
+                map.on('zoomend', () => {
+                    if (currentIlce && focusedItemIndex === null) {
+                        renderMarkers();
+                    }
+                });
+            }
+
+            updateDetailView();
+        }
+
+        // Switch Data Type
+        function switchDataType(type) {
+            currentDataType = type;
+            selectedKategori = null;
+            focusedItemIndex = null;
+            gorusmeFilter = 'all'; // Filtreyi sıfırla
+
+            document.querySelectorAll('.data-toggle button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+
+            // Görüşme filtre butonlarını sıfırla
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === 'all');
+            });
+
+            updateDetailView();
+        }
+
+        // Update Detail View
+        function updateDetailView() {
+            const ilceKey = currentIlce;
+            let items;
+
+            console.log('updateDetailView called - dataType:', currentDataType, 'ilceKey:', ilceKey);
+
+            if (currentDataType === 'atama') {
+                const ilce = ilceGroups[ilceKey];
+                items = ilce ? ilce.items : [];
+                console.log('Atama items found:', items.length);
+            } else {
+                // Muhtar verisi - ilçe adını normalize ederek bul
+                const muhtarIlce = muhtarGroups[ilceKey];
+                items = muhtarIlce ? muhtarIlce.items : [];
+                console.log('Muhtar group found:', muhtarIlce ? 'yes' : 'no', 'items:', items.length);
+
+                // Eğer bulunamazsa tüm muhtar verilerinden ilce anahtarına göre filtrele
+                if (items.length === 0) {
+                    items = allMuhtarData.filter(row => {
+                        const rowIlce = normalizeTr((row['ILCE'] || '').toString().trim());
+                        return rowIlce === ilceKey;
+                    });
+                    console.log('Fallback filter muhtar items:', items.length);
+                }
+            }
+
+            currentItems = items;
+            console.log('currentItems set to:', currentItems.length, 'items');
+
+            const ilceName = ilceGroups[ilceKey]?.name || currentIlce;
+            document.getElementById('listTitle').textContent = ilceName;
+
+            if (currentDataType === 'atama') {
+                document.getElementById('listStats').textContent = `${items.length} kurum atandı`;
+            } else {
+                document.getElementById('listStats').textContent = `${items.length} muhtar`;
+            }
+
+            // Bounds sıfırla ki yeni veriye göre zoom yapılsın
+            if (map) map._boundsSet = false;
+
+            renderList(items);
+            renderGorusmeFilters(items);
+            renderLegend(items);
+            renderMarkers();
+        }
+
+        // Render Markers
+        function renderMarkers() {
+            markerLayer.clearLayers();
+
+            // Önce kategori filtresini uygula
+            let filteredItems = selectedKategori
+                ? currentItems.filter(item => normalizeTr(item['ANA KATEGORİ'] || '') === selectedKategori)
+                : currentItems;
+
+            // Sonra görüşme filtresini uygula
+            if (gorusmeFilter !== 'all') {
+                filteredItems = filteredItems.filter(item => getGorusmeDurum(item) === gorusmeFilter);
+            }
+
+            const threshold = getClusterThreshold();
+            const groups = [];
+
+            filteredItems.forEach((item, idx) => {
+                const coords = parseCoordinates(item['KOORDİNATLAR']);
+                if (!coords) return;
+
+                let foundGroup = null;
+                for (const group of groups) {
+                    const dx = group.center.lat - coords.lat;
+                    const dy = group.center.lng - coords.lng;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < threshold) {
+                        foundGroup = group;
+                        break;
+                    }
+                }
+
+                if (foundGroup) {
+                    foundGroup.items.push({ ...item, coords, originalIndex: idx });
+                    const allCoords = foundGroup.items.map(i => i.coords);
+                    foundGroup.center = {
+                        lat: allCoords.reduce((sum, c) => sum + c.lat, 0) / allCoords.length,
+                        lng: allCoords.reduce((sum, c) => sum + c.lng, 0) / allCoords.length
+                    };
+                } else {
+                    groups.push({
+                        items: [{ ...item, coords, originalIndex: idx }],
+                        center: coords
+                    });
+                }
+            });
+
+            const bounds = [];
+            const scale = getMarkerScale();
+
+            groups.forEach(group => {
+                const count = group.items.length;
+                // Baz boyut + kurum sayısına göre artış, zoom çarpanı ile ölçekle
+                const baseRadius = 10 + Math.min(count * 2, 14);
+                const radius = baseRadius * scale;
+                const scaledTotalSize = radius * 2;
+
+                const marker = L.marker([group.center.lat, group.center.lng], {
+                    icon: L.divIcon({
+                        className: 'pie-icon',
+                        html: createPieSvg(group.items, radius),
+                        iconSize: [scaledTotalSize, scaledTotalSize],
+                        iconAnchor: [scaledTotalSize / 2, scaledTotalSize / 2]
+                    })
+                }).addTo(markerLayer);
+
+                let content = `<div style="min-width:200px; max-width:280px;">
+                    <div class="popup-title">${count} ${currentDataType === 'muhtar' ? 'Muhtar' : 'Kurum'}</div>`;
+                group.items.forEach(i => {
+                    const kat = i['ANA KATEGORİ'] || '';
+                    const katKey = normalizeTr(kat);
+                    const color = KATEGORI_COLORS[katKey] || '#666';
+                    content += `<div class="popup-item">
+                        <div class="popup-type" style="color:${color}">${kat}</div>
+                        <div class="popup-name">${i['ADI'] || 'İsimsiz'}</div>
+                        <div class="popup-id">ID: ${i['ID'] || '-'}</div>
+                    </div>`;
+                });
+                content += `</div>`;
+                marker.bindPopup(content);
+
+                marker.on('click', () => {
+                    if (group.items.length === 1) {
+                        highlightListItem(group.items[0].originalIndex);
+                    }
+                });
+
+                bounds.push([group.center.lat, group.center.lng]);
+            });
+
+            if (bounds.length > 0 && !map._boundsSet) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+                map._boundsSet = true;
+            }
+        }
+
+        // Render List
+        function renderList(items) {
+            const content = document.getElementById('listContent');
+            const isMuhtar = currentDataType === 'muhtar';
+
+            // Görüşme filtresini uygula
+            const filteredItems = items.filter((item, idx) => {
+                if (gorusmeFilter === 'all') return true;
+                const durum = getGorusmeDurum(item);
+                return durum === gorusmeFilter;
+            });
+
+            content.innerHTML = filteredItems.map((item, index) => {
+                const id = item['ID'] || '-';
+                const kategori = item['ANA KATEGORİ'] || '';
+                const kategoriKey = normalizeTr(kategori);
+                const alan = item['ÇALIŞMA ALANI'] || '';
+                const grup = item['DEZAVANTAJLI GRUP'] || '';
+                const adres = item['ADRES'] || '';
+                const mahalle = item['MAHALLE'] || '';
+
+                // Görüşme durumu
+                const gorusmeDurum = getGorusmeDurum(item);
+                const gorusmeSinif = getGorusmeSinif(gorusmeDurum);
+                const gorusmeBadge = `<span class="gorusme-badge durum-${gorusmeSinif}">${gorusmeDurum}</span>`;
+
+                // Orijinal index'i bul
+                const originalIndex = items.indexOf(item);
+
+                return `
+                    <div class="address-item" data-index="${originalIndex}" data-kategori="${kategoriKey}" data-gorusme="${gorusmeDurum}" onclick="focusMarker(${originalIndex})">
+                        <div class="address-header">
+                            <span class="address-id${isMuhtar ? ' muhtar' : ''}">${id}</span>
+                            <div class="address-name">${item['ADI'] || 'İsimsiz Kurum'}</div>
+                            ${gorusmeBadge}
+                        </div>
+                        ${adres ? `<div class="address-detail">📍 ${mahalle ? mahalle + ', ' : ''}${adres}</div>` : ''}
+                        <div class="address-meta">
+                            ${kategori ? `<span class="address-tag kategori">${kategori}</span>` : ''}
+                            ${alan ? `<span class="address-tag alan">${alan}</span>` : ''}
+                            ${grup ? `<span class="address-tag grup">${grup}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Stats güncelle
+            if (gorusmeFilter !== 'all') {
+                document.getElementById('listStats').textContent = `${filteredItems.length} / ${items.length} ${currentDataType === 'muhtar' ? 'muhtar' : 'kurum'}`;
+            }
+        }
+
+        // Görüşme filtre butonlarını render et
+        function renderGorusmeFilters(items) {
+            const filterRow = document.getElementById('filterRow');
+
+            // Mevcut verideki görüşme durumlarını say
+            const durumSayilari = { 'Temas Kurulmadı': 0 };
+            items.forEach(item => {
+                const durum = getGorusmeDurum(item);
+                durumSayilari[durum] = (durumSayilari[durum] || 0) + 1;
+            });
+
+            // Tümü butonu
+            let html = `<button class="filter-btn${gorusmeFilter === 'all' ? ' active' : ''}" data-filter="all" onclick="filterByGorusme('all')">
+                Tümü (${items.length})
+            </button>`;
+
+            // Diğer durumlar için butonlar
+            Object.keys(durumSayilari).sort().forEach(durum => {
+                if (durumSayilari[durum] > 0) {
+                    const sinif = getGorusmeSinif(durum);
+                    const isActive = gorusmeFilter === durum ? ' active' : '';
+                    html += `<button class="filter-btn${isActive}" data-filter="${durum}" onclick="filterByGorusme('${durum}')">
+                        <span class="dot dot-${sinif}"></span>
+                        ${durum} (${durumSayilari[durum]})
+                    </button>`;
+                }
+            });
+
+            filterRow.innerHTML = html;
+        }
+
+        // Görüşme durumuna göre filtrele
+        function filterByGorusme(filter) {
+            gorusmeFilter = filter;
+
+            // Buton aktifliğini güncelle
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+
+            // Listeyi ve haritayı yeniden render et
+            renderList(currentItems);
+            renderMarkers();
+
+            // Stats güncelle
+            if (filter === 'all') {
+                if (currentDataType === 'atama') {
+                    document.getElementById('listStats').textContent = `${currentItems.length} kurum atandı`;
+                } else {
+                    document.getElementById('listStats').textContent = `${currentItems.length} muhtar`;
+                }
+            }
+        }
+
+        // Render Legend
+        function renderLegend(items) {
+            const legend = document.getElementById('mapLegend');
+            const categories = {};
+
+            items.forEach(item => {
+                const kat = item['ANA KATEGORİ'] || 'Diğer';
+                const katKey = normalizeTr(kat);
+                if (!categories[katKey]) {
+                    categories[katKey] = {
+                        name: kat,
+                        key: katKey,
+                        color: KATEGORI_COLORS[katKey] || '#666',
+                        count: 0
+                    };
+                }
+                categories[katKey].count++;
+            });
+
+            legend.innerHTML = `
+                <div class="legend-title">Ana Kategoriler</div>
+                ${Object.values(categories).sort((a, b) => b.count - a.count).map(cat => `
+                    <div class="legend-item" data-kategori="${cat.key}" onclick="filterByKategori('${cat.key}')">
+                        <div class="legend-color" style="background: ${cat.color}"></div>
+                        <span>${cat.name} (${cat.count})</span>
+                    </div>
+                `).join('')}
+                <div class="legend-clear" id="legendClear" onclick="clearFilter()">✕ Filtreyi Temizle</div>
+            `;
+        }
+
+        // Filter by Kategori
+        function filterByKategori(kategoriKey) {
+            if (selectedKategori === kategoriKey) {
+                clearFilter();
+                return;
+            }
+
+            selectedKategori = kategoriKey;
+            focusedItemIndex = null;
+
+            document.querySelectorAll('.legend-item').forEach(el => {
+                if (el.dataset.kategori === kategoriKey) {
+                    el.classList.add('active');
+                    el.classList.remove('dimmed');
+                } else {
+                    el.classList.remove('active');
+                    el.classList.add('dimmed');
+                }
+            });
+            document.getElementById('legendClear').classList.add('visible');
+
+            renderMarkers();
+
+            document.querySelectorAll('.address-item').forEach(el => {
+                if (el.dataset.kategori === kategoriKey) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+
+            const visibleCount = document.querySelectorAll('.address-item:not(.hidden)').length;
+            document.getElementById('listStats').textContent = `${visibleCount} / ${currentItems.length} ${currentDataType === 'muhtar' ? 'muhtar' : 'kurum'} gösteriliyor`;
+        }
+
+        // Clear Filter
+        function clearFilter() {
+            selectedKategori = null;
+            focusedItemIndex = null;
+
+            document.querySelectorAll('.legend-item').forEach(el => {
+                el.classList.remove('active', 'dimmed');
+            });
+            document.getElementById('legendClear').classList.remove('visible');
+
+            renderMarkers();
+
+            document.querySelectorAll('.address-item').forEach(el => {
+                el.classList.remove('hidden');
+            });
+
+            if (currentDataType === 'atama') {
+                document.getElementById('listStats').textContent = `${currentItems.length} kurum atandı`;
+            } else {
+                document.getElementById('listStats').textContent = `${currentItems.length} muhtar`;
+            }
+        }
+
+        // Focus Marker - Tıklandığında tek marker göster, ikinci tıklamada geri dön
+        function focusMarker(index) {
+            const item = currentItems[index];
+            if (!item) return;
+
+            // Aynı öğeye ikinci kez tıklandıysa, filtreyi kaldır ve grupları göster
+            if (focusedItemIndex === index) {
+                focusedItemIndex = null;
+                highlightListItem(-1); // Seçimi kaldır
+                renderMarkers();
+                return;
+            }
+
+            const coords = parseCoordinates(item['KOORDİNATLAR']);
+            if (coords) {
+                focusedItemIndex = index;
+                map.setView([coords.lat, coords.lng], 16);
+
+                markerLayer.clearLayers();
+
+                const kategori = item['ANA KATEGORİ'] || '';
+                const kategoriKey = normalizeTr(kategori);
+                const color = KATEGORI_COLORS[kategoriKey] || '#666';
+
+                const marker = L.circleMarker([coords.lat, coords.lng], {
+                    radius: 10,
+                    fillColor: color,
+                    color: '#fff',
+                    weight: 3,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                }).addTo(markerLayer);
+
+                marker.bindPopup(`
+                    <div style="min-width:180px;">
+                        <div class="popup-title">${currentDataType === 'muhtar' ? 'Muhtar Detayı' : 'Kurum Detayı'}</div>
+                        <div class="popup-item">
+                            <div class="popup-type" style="color:${color}">${kategori}</div>
+                            <div class="popup-name">${item['ADI'] || 'İsimsiz'}</div>
+                            <div class="popup-id">ID: ${item['ID'] || '-'}</div>
+                        </div>
+                    </div>
+                `).openPopup();
+            }
+            highlightListItem(index);
+        }
+
+        // Highlight List Item
+        function highlightListItem(index) {
+            document.querySelectorAll('.address-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            if (index >= 0) {
+                const item = document.querySelector(`.address-item[data-index="${index}"]`);
+                if (item) {
+                    item.classList.add('active');
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+        }
+
+        // Show Gallery
+        function showGallery() {
+            document.getElementById('detailView').classList.remove('visible');
+            document.getElementById('galleryView').style.display = 'block';
+            currentIlce = null;
+            selectedKategori = null;
+            focusedItemIndex = null;
+            currentDataType = 'atama';
+            if (map) {
+                map._boundsSet = false;
+            }
+
+            const backLink = document.getElementById('headerBackLink');
+            backLink.href = 'index.html';
+            backLink.onclick = null;
+            backLink.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Ana Sayfa
+            `;
+        }
+
+        // Init
+        loadData();
+    </script>
+</body>
+
+</html>

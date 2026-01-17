@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atama Özet - Takip Tabloları</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 24px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .header-back-link {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #fff;
+            text-decoration: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            transition: all 0.2s;
+        }
+
+        .header-back-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Content */
+        .content {
+            max-width: 98%;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Card */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .card-header .stats {
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Filter buttons */
+        .filter-toggle {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-toggle button {
+            padding: 6px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            background: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-toggle button:hover {
+            border-color: #667eea;
+        }
+
+        .filter-toggle button.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: #fff;
+        }
+
+        .card-body {
+            padding: 0;
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: calc(100vh - 280px);
+        }
+
+        /* Table */
+        .tracking-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .tracking-table th,
+        .tracking-table td {
+            padding: 10px 12px;
+            text-align: center;
+            border: 1px solid #eee;
+        }
+
+        .tracking-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .tracking-table th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            background: #f0f0f0;
+        }
+
+        .tracking-table td:first-child {
+            position: sticky;
+            left: 0;
+            background: #fff;
+            font-weight: 600;
+            color: #333;
+            z-index: 1;
+        }
+
+        .tracking-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .tracking-table tbody tr:hover td:first-child {
+            background: #f0f0f0;
+        }
+
+        /* Cell styles */
+        .cell-value {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .cell-temas {
+            color: #1976d2;
+            font-weight: 600;
+        }
+
+        .cell-gorusme {
+            color: #388e3c;
+            font-size: 11px;
+        }
+
+        .cell-empty {
+            color: #ccc;
+        }
+
+        /* Total row */
+        .tracking-table tfoot tr {
+            background: #e8eaf6;
+            font-weight: 600;
+        }
+
+        .tracking-table tfoot td {
+            border-top: 2px solid #667eea;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #eee;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 20px;
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .legend-color.temas {
+            background: #1976d2;
+        }
+
+        .legend-color.gorusme {
+            background: #388e3c;
+        }
+
+        /* Expandable rows */
+        .expand-btn {
+            cursor: pointer;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .expand-btn .arrow {
+            display: inline-block;
+            transition: transform 0.2s;
+            font-size: 10px;
+        }
+
+        .expand-btn.expanded .arrow {
+            transform: rotate(90deg);
+        }
+
+        .sub-row {
+            display: none;
+        }
+
+        .sub-row.visible {
+            display: table-row;
+        }
+
+        .sub-row td:first-child {
+            padding-left: 28px;
+            font-weight: 400;
+            color: #666;
+            font-size: 11px;
+        }
+
+        .category-name {
+            font-weight: 600;
+        }
+
+        .sub-category-name {
+            font-weight: 400;
+            color: #666;
+        }
+
+        /* Tab Toggle */
+        .tab-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 20px;
+        }
+
+        .tab-toggle button {
+            padding: 12px 32px;
+            border: 2px solid #667eea;
+            background: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-toggle button:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+
+        .tab-toggle button:last-child {
+            border-radius: 0 8px 8px 0;
+            border-left: none;
+        }
+
+        .tab-toggle button.active {
+            background: #667eea;
+            color: #fff;
+        }
+
+        .card.hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <a href="atama_listesi.html" class="header-back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Atama Listesine Dön
+        </a>
+        <h1>Atama Takip Özeti</h1>
+        <p class="subtitle">Tarih ve ilçe bazlı görüşme istatistikleri</p>
+    </div>
+
+    <div class="content">
+        <!-- Tab Toggle -->
+        <div class="tab-toggle">
+            <button id="tabGunluk" class="active" onclick="switchTab('gunluk')">📊 Günlük Takip</button>
+            <button id="tabKategori" onclick="switchTab('kategori')">📂 Kategori Bazlı</button>
+        </div>
+
+        <div class="card" id="trackingCard">
+            <div class="card-header">
+                <h2>📊 Günlük Temas & Görüşme Takibi</h2>
+                <div class="filter-toggle">
+                    <button id="btnTumu" onclick="setFilter('tumu')">Tümü</button>
+                    <button id="btnAktif" class="active" onclick="setFilter('aktif')">Aktif İlçeler</button>
+                </div>
+                <div class="stats" id="tableStats">Yükleniyor...</div>
+            </div>
+            <div class="card-body" id="tableBody">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <div>Veriler yükleniyor...</div>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color temas"></div>
+                    <span>Temas Sayısı (herhangi bir görüşme durumu)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color gorusme"></div>
+                    <span>Görüşme Gerçekleştirildi</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kategori Tablosu -->
+        <div class="card hidden" id="categoryCard">
+            <div class="card-header">
+                <h2>📂 Kategori Bazlı Temas & Görüşme</h2>
+                <div class="filter-toggle">
+                    <button id="btnTumu2" onclick="setFilter('tumu')">Tümü</button>
+                    <button id="btnAktif2" class="active" onclick="setFilter('aktif')">Aktif İlçeler</button>
+                </div>
+                <div class="stats" id="categoryStats">Yükleniyor...</div>
+            </div>
+            <div class="card-body" id="categoryTableBody">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <div>Veriler yükleniyor...</div>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color temas"></div>
+                    <span>Temas Sayısı</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color gorusme"></div>
+                    <span>Görüşme Gerçekleştirildi</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentFilter = 'aktif'; // 'tumu' veya 'aktif'
+        let cachedData = null;
+
+        // Filtre değiştir
+        function setFilter(filter) {
+            currentFilter = filter;
+            // Her iki tablodaki butonları da güncelle
+            document.getElementById('btnTumu').classList.toggle('active', filter === 'tumu');
+            document.getElementById('btnAktif').classList.toggle('active', filter === 'aktif');
+            document.getElementById('btnTumu2').classList.toggle('active', filter === 'tumu');
+            document.getElementById('btnAktif2').classList.toggle('active', filter === 'aktif');
+
+            if (cachedData) {
+                renderWithFilter(cachedData);
+            }
+        }
+
+        // Tab değiştir
+        function switchTab(tab) {
+            document.getElementById('tabGunluk').classList.toggle('active', tab === 'gunluk');
+            document.getElementById('tabKategori').classList.toggle('active', tab === 'kategori');
+
+            document.getElementById('trackingCard').classList.toggle('hidden', tab !== 'gunluk');
+            document.getElementById('categoryCard').classList.toggle('hidden', tab !== 'kategori');
+        }
+
+        // Excel tarih formatını JS tarihine çevir
+        function excelDateToJS(excelDate) {
+            if (!excelDate) return null;
+            if (typeof excelDate === 'string') {
+                // Zaten string tarih ise parse et
+                const parts = excelDate.split(/[\/\-\.]/);
+                if (parts.length >= 3) {
+                    return new Date(parts[2], parts[1] - 1, parts[0]);
+                }
+                return null;
+            }
+            // Excel serial date
+            const date = new Date((excelDate - 25569) * 86400 * 1000);
+            return date;
+        }
+
+        // Tarihi formatlı string'e çevir
+        function formatDate(date) {
+            if (!date || isNaN(date.getTime())) return null;
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}.${month}.${year}`;
+        }
+
+        // Veri yükle
+        async function loadData() {
+            try {
+                // Görüşme verisi
+                const gorusmeResponse = await fetch('veri/veri.xlsx');
+                const gorusmeBuffer = await gorusmeResponse.arrayBuffer();
+                const gorusmeWorkbook = XLSX.read(gorusmeBuffer, { type: 'array' });
+                const gorusmeSheet = gorusmeWorkbook.Sheets['Gorusme_Durum_Birlestiril'];
+                const gorusmeData = XLSX.utils.sheet_to_json(gorusmeSheet);
+
+                // Adres verisi (ilçe bilgisi için)
+                const adresResponse = await fetch('atama_listesi.xlsx');
+                const adresBuffer = await adresResponse.arrayBuffer();
+                const adresWorkbook = XLSX.read(adresBuffer, { type: 'array' });
+
+                // Tüm Adresler sayfasından ID -> İlçe ve Kategori eşlemesi
+                const tumAdresSheet = adresWorkbook.Sheets['Tüm Adresler'];
+                const tumAdresData = XLSX.utils.sheet_to_json(tumAdresSheet);
+
+                const idToIlce = {};
+                const idToCategory = {};
+                tumAdresData.forEach(row => {
+                    const id = (row['ID'] || '').toString().trim();
+                    const ilce = (row['ILCE'] || '').toString().trim();
+                    const anaKategori = (row['ANA KATEGORİ'] || '').toString().trim();
+                    const altKategori = (row['ALT KATEGORI'] || '').toString().trim();
+                    if (id && ilce) {
+                        idToIlce[id] = ilce;
+                        idToCategory[id] = { ana: anaKategori || 'Diğer', alt: altKategori || 'Belirtilmemiş' };
+                    }
+                });
+                console.log('[DEBUG] Tüm Adresler sayfasından yüklenen ID sayısı:', Object.keys(idToIlce).length);
+
+                // Muhtarlar sayfasından da ID -> İlçe eşlemesi ekle
+                const muhtarSheet = adresWorkbook.Sheets['Muhtarlar'];
+                if (muhtarSheet) {
+                    const muhtarData = XLSX.utils.sheet_to_json(muhtarSheet);
+                    muhtarData.forEach(row => {
+                        const id = (row['ID'] || '').toString().trim();
+                        const ilce = (row['ILCE'] || '').toString().trim();
+                        if (id && ilce && !idToIlce[id]) {
+                            idToIlce[id] = ilce;
+                            idToCategory[id] = { ana: 'MUHTAR', alt: 'Muhtar' };
+                        }
+                    });
+                    console.log('[DEBUG] Muhtarlar dahil toplam ID sayısı:', Object.keys(idToIlce).length);
+                } else {
+                    console.warn('[DEBUG] Muhtarlar sayfası bulunamadı!');
+                }
+
+                // Adresler sayfasından aktif (atama yapılmış) ilçeleri al
+                const aktifAdresSheet = adresWorkbook.Sheets['Adresler'];
+                const aktifAdresData = XLSX.utils.sheet_to_json(aktifAdresSheet);
+
+                const aktifIlceler = new Set();
+                aktifAdresData.forEach(row => {
+                    if (row['Atama Durumu'] === 'Evet') {
+                        const ilce = (row['ILCE'] || '').toString().trim();
+                        if (ilce) aktifIlceler.add(ilce);
+                    }
+                });
+
+                // Tüm ilçeleri topla
+                const ilceSet = new Set();
+                const tarihSet = new Set();
+
+                // Eşleşmeyen ID'leri takip et
+                const unmatchedIds = [];
+                const allGorusmeIds = new Set();
+
+                // Veriyi işle
+                const processedData = [];
+                gorusmeData.forEach(row => {
+                    const aktorId = (row['Aktör ID'] || '').toString().trim();
+                    const durum = (row['Görüşme Yapıldı mı?'] || '').toString().trim();
+                    const tarihRaw = row['Tarih'];
+
+                    allGorusmeIds.add(aktorId);
+
+                    const ilce = idToIlce[aktorId];
+                    if (!ilce) {
+                        unmatchedIds.push(aktorId);
+                        return; // İlçe eşleşmesi yoksa atla
+                    }
+
+                    const tarihDate = excelDateToJS(tarihRaw);
+                    const tarih = formatDate(tarihDate);
+                    if (!tarih) return; // Geçersiz tarih
+
+                    ilceSet.add(ilce);
+                    tarihSet.add(tarih);
+
+                    // Kategori bilgisini al
+                    const kategori = idToCategory[aktorId] || { ana: 'Diğer', alt: 'Belirtilmemiş' };
+
+                    processedData.push({
+                        aktorId,
+                        ilce,
+                        tarih,
+                        durum,
+                        isGorusme: durum === 'Görüşme Gerçekleştirildi',
+                        anaKategori: kategori.ana,
+                        altKategori: kategori.alt
+                    });
+                });
+
+                // Eşleşme logları
+                console.log('%c=== EŞLEŞME RAPORU ===', 'background: #667eea; color: white; font-weight: bold; padding: 4px 8px;');
+                console.log('');
+                console.log('%c📁 KAYNAK: veri/veri.xlsx → Gorusme_Durum_Birlestiril sayfası', 'font-weight: bold;');
+                console.log('   Toplam benzersiz Aktör ID sayısı:', allGorusmeIds.size);
+                console.log('');
+                console.log('%c📁 HEDEF: atama_listesi.xlsx', 'font-weight: bold;');
+                console.log('   → Tüm Adresler sayfasından yüklenen ID:', Object.keys(idToIlce).length - (muhtarSheet ? XLSX.utils.sheet_to_json(muhtarSheet).length : 0));
+                console.log('   → Muhtarlar sayfasından yüklenen ID:', muhtarSheet ? XLSX.utils.sheet_to_json(muhtarSheet).length : 0);
+                console.log('   → TOPLAM eşleştirme havuzu:', Object.keys(idToIlce).length);
+                console.log('');
+                console.log('%c📊 SONUÇ:', 'font-weight: bold;');
+                console.log('   ✅ Eşleşen kayıt sayısı:', processedData.length);
+                console.log('   ❌ Eşleşmeyen kayıt sayısı:', unmatchedIds.length);
+
+                if (unmatchedIds.length > 0) {
+                    const uniqueUnmatched = [...new Set(unmatchedIds)];
+                    console.log('');
+                    console.warn('%c⚠️ EŞLEŞMEYEN ID\'LER (' + uniqueUnmatched.length + ' benzersiz):', 'color: red; font-weight: bold;');
+                    console.log('   Bu ID\'ler veri/veri.xlsx → Gorusme_Durum_Birlestiril sayfasında VAR');
+                    console.log('   AMA atama_listesi.xlsx → Tüm Adresler veya Muhtarlar sayfalarında YOK:');
+                    console.log('');
+                    uniqueUnmatched.forEach(id => {
+                        console.log('   ❌ ID: ' + id);
+                    });
+                } else {
+                    console.log('   🎉 Tüm ID\'ler başarıyla eşleşti!');
+                }
+                console.log('');
+                console.log('%c======================', 'background: #667eea; color: white; font-weight: bold; padding: 4px 8px;');
+
+                // Tüm ilçeleri ve tarihleri sırala
+                const tumIlceler = Array.from(ilceSet).sort((a, b) => a.localeCompare(b, 'tr'));
+                const tarihler = Array.from(tarihSet).sort((a, b) => {
+                    const [d1, m1, y1] = a.split('.').map(Number);
+                    const [d2, m2, y2] = b.split('.').map(Number);
+                    return new Date(y1, m1 - 1, d1) - new Date(y2, m2 - 1, d2);
+                });
+
+                // Verileri cache'le
+                cachedData = {
+                    processedData,
+                    tumIlceler,
+                    aktifIlceler,
+                    tarihler,
+                    idToCategory
+                };
+
+                // Filtreye göre render et
+                renderWithFilter(cachedData);
+
+            } catch (err) {
+                console.error('Veri yüklenemedi:', err);
+                document.getElementById('tableBody').innerHTML = `
+                    <div class="loading" style="color: #e53935;">
+                        Hata: ${err.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Filtreye göre render et
+        function renderWithFilter(data) {
+            const { processedData, tumIlceler, aktifIlceler, tarihler } = data;
+
+            // Filtreye göre ilçeleri seç
+            const ilceler = currentFilter === 'aktif'
+                ? tumIlceler.filter(i => aktifIlceler.has(i))
+                : tumIlceler;
+
+            // Filtrelenmiş veri
+            const filteredData = currentFilter === 'aktif'
+                ? processedData.filter(item => aktifIlceler.has(item.ilce))
+                : processedData;
+
+            // Filtrelenmiş verideki tarihleri bul
+            const filteredTarihSet = new Set();
+            filteredData.forEach(item => filteredTarihSet.add(item.tarih));
+            const filteredTarihler = tarihler.filter(t => filteredTarihSet.has(t));
+
+            // Matris oluştur: tarih -> ilce -> { temas, gorusme }
+            const matrix = {};
+            filteredTarihler.forEach(tarih => {
+                matrix[tarih] = {};
+                ilceler.forEach(ilce => {
+                    matrix[tarih][ilce] = { temas: 0, gorusme: 0 };
+                });
+            });
+
+            // Verileri matrise doldur
+            filteredData.forEach(item => {
+                if (matrix[item.tarih] && matrix[item.tarih][item.ilce]) {
+                    matrix[item.tarih][item.ilce].temas++;
+                    if (item.isGorusme) {
+                        matrix[item.tarih][item.ilce].gorusme++;
+                    }
+                }
+            });
+
+            // Toplamları hesapla
+            const ilceTotals = {};
+            ilceler.forEach(ilce => {
+                ilceTotals[ilce] = { temas: 0, gorusme: 0 };
+            });
+
+            filteredTarihler.forEach(tarih => {
+                ilceler.forEach(ilce => {
+                    ilceTotals[ilce].temas += matrix[tarih][ilce].temas;
+                    ilceTotals[ilce].gorusme += matrix[tarih][ilce].gorusme;
+                });
+            });
+
+            // Tabloları render et
+            renderTable(filteredTarihler, ilceler, matrix, ilceTotals, filteredData.length);
+            renderCategoryTable(filteredData, ilceler);
+        }
+
+        // Kategori tablosunu render et
+        function renderCategoryTable(data, ilceler) {
+            // Kategori -> Alt Kategori -> İlçe -> { temas, gorusme }
+            const categoryMatrix = {};
+
+            data.forEach(item => {
+                const ana = item.anaKategori;
+                const alt = item.altKategori;
+                const ilce = item.ilce;
+
+                if (!categoryMatrix[ana]) {
+                    categoryMatrix[ana] = { totals: {}, subs: {} };
+                    ilceler.forEach(i => categoryMatrix[ana].totals[i] = { temas: 0, gorusme: 0 });
+                }
+
+                if (!categoryMatrix[ana].subs[alt]) {
+                    categoryMatrix[ana].subs[alt] = {};
+                    ilceler.forEach(i => categoryMatrix[ana].subs[alt][i] = { temas: 0, gorusme: 0 });
+                }
+
+                if (categoryMatrix[ana].totals[ilce]) {
+                    categoryMatrix[ana].totals[ilce].temas++;
+                    if (item.isGorusme) categoryMatrix[ana].totals[ilce].gorusme++;
+                }
+
+                if (categoryMatrix[ana].subs[alt][ilce]) {
+                    categoryMatrix[ana].subs[alt][ilce].temas++;
+                    if (item.isGorusme) categoryMatrix[ana].subs[alt][ilce].gorusme++;
+                }
+            });
+
+            const kategoriler = Object.keys(categoryMatrix).sort((a, b) => a.localeCompare(b, 'tr'));
+
+            // Stats güncelle
+            document.getElementById('categoryStats').textContent =
+                `${kategoriler.length} ana kategori, ${ilceler.length} ilçe`;
+
+            // Tablo HTML
+            let html = '<table class="tracking-table">';
+
+            // Header
+            html += '<thead><tr><th>Kategori</th>';
+            ilceler.forEach(ilce => {
+                html += `<th>${ilce}</th>`;
+            });
+            html += '<th>TOPLAM</th></tr></thead>';
+
+            // Body
+            html += '<tbody>';
+            kategoriler.forEach((ana, idx) => {
+                const cat = categoryMatrix[ana];
+                const subKeys = Object.keys(cat.subs).sort((a, b) => a.localeCompare(b, 'tr'));
+                const hasSubcategories = subKeys.length > 1 || (subKeys.length === 1 && subKeys[0] !== 'Belirtilmemiş');
+
+                // Ana kategori satırı
+                let rowTemas = 0, rowGorusme = 0;
+                html += `<tr>`;
+
+                if (hasSubcategories) {
+                    html += `<td><span class="expand-btn" onclick="toggleSubRows(${idx})">
+                        <span class="arrow">▶</span>
+                        <span class="category-name">${ana}</span>
+                    </span></td>`;
+                } else {
+                    html += `<td><span class="category-name">${ana}</span></td>`;
+                }
+
+                ilceler.forEach(ilce => {
+                    const cell = cat.totals[ilce];
+                    rowTemas += cell.temas;
+                    rowGorusme += cell.gorusme;
+
+                    if (cell.temas === 0) {
+                        html += '<td class="cell-empty">-</td>';
+                    } else {
+                        html += `<td>
+                            <div class="cell-value">
+                                <span class="cell-temas">${cell.temas}</span>
+                                ${cell.gorusme > 0 ? `<span class="cell-gorusme">(${cell.gorusme} ✓)</span>` : ''}
+                            </div>
+                        </td>`;
+                    }
+                });
+
+                // Satır toplamı
+                html += `<td>
+                    <div class="cell-value">
+                        <span class="cell-temas">${rowTemas}</span>
+                        <span class="cell-gorusme">(${rowGorusme} ✓)</span>
+                    </div>
+                </td></tr>`;
+
+                // Alt kategori satırları
+                if (hasSubcategories) {
+                    subKeys.forEach(alt => {
+                        let subTemas = 0, subGorusme = 0;
+                        html += `<tr class="sub-row" data-parent="${idx}">`;
+                        html += `<td><span class="sub-category-name">↳ ${alt}</span></td>`;
+
+                        ilceler.forEach(ilce => {
+                            const cell = cat.subs[alt][ilce];
+                            subTemas += cell.temas;
+                            subGorusme += cell.gorusme;
+
+                            if (cell.temas === 0) {
+                                html += '<td class="cell-empty">-</td>';
+                            } else {
+                                html += `<td>
+                                    <div class="cell-value">
+                                        <span class="cell-temas">${cell.temas}</span>
+                                        ${cell.gorusme > 0 ? `<span class="cell-gorusme">(${cell.gorusme} ✓)</span>` : ''}
+                                    </div>
+                                </td>`;
+                            }
+                        });
+
+                        html += `<td>
+                            <div class="cell-value">
+                                <span class="cell-temas">${subTemas}</span>
+                                <span class="cell-gorusme">(${subGorusme} ✓)</span>
+                            </div>
+                        </td></tr>`;
+                    });
+                }
+            });
+            html += '</tbody>';
+
+            // Footer - Genel toplam
+            html += '<tfoot><tr><td>TOPLAM</td>';
+            let grandTemas = 0, grandGorusme = 0;
+
+            ilceler.forEach(ilce => {
+                let ilceTemas = 0, ilceGorusme = 0;
+                kategoriler.forEach(ana => {
+                    ilceTemas += categoryMatrix[ana].totals[ilce].temas;
+                    ilceGorusme += categoryMatrix[ana].totals[ilce].gorusme;
+                });
+                grandTemas += ilceTemas;
+                grandGorusme += ilceGorusme;
+
+                html += `<td>
+                    <div class="cell-value">
+                        <span class="cell-temas">${ilceTemas}</span>
+                        <span class="cell-gorusme">(${ilceGorusme} ✓)</span>
+                    </div>
+                </td>`;
+            });
+
+            html += `<td>
+                <div class="cell-value">
+                    <span class="cell-temas">${grandTemas}</span>
+                    <span class="cell-gorusme">(${grandGorusme} ✓)</span>
+                </div>
+            </td></tr></tfoot>`;
+
+            html += '</table>';
+            document.getElementById('categoryTableBody').innerHTML = html;
+        }
+
+        // Alt satırları aç/kapat
+        function toggleSubRows(parentIdx) {
+            const btn = event.currentTarget;
+            btn.classList.toggle('expanded');
+
+            document.querySelectorAll(`tr.sub-row[data-parent="${parentIdx}"]`).forEach(row => {
+                row.classList.toggle('visible');
+            });
+        }
+
+        function renderTable(tarihler, ilceler, matrix, ilceTotals, totalRecords) {
+            // Stats güncelle
+            document.getElementById('tableStats').textContent =
+                `${tarihler.length} gün, ${ilceler.length} ilçe, ${totalRecords} kayıt`;
+
+            // Tablo HTML
+            let html = '<table class="tracking-table">';
+
+            // Header
+            html += '<thead><tr><th>Tarih</th>';
+            ilceler.forEach(ilce => {
+                html += `<th>${ilce}</th>`;
+            });
+            html += '<th>TOPLAM</th></tr></thead>';
+
+            // Body
+            html += '<tbody>';
+            tarihler.forEach(tarih => {
+                html += `<tr><td>${tarih}</td>`;
+                let rowTemas = 0, rowGorusme = 0;
+
+                ilceler.forEach(ilce => {
+                    const cell = matrix[tarih][ilce];
+                    rowTemas += cell.temas;
+                    rowGorusme += cell.gorusme;
+
+                    if (cell.temas === 0) {
+                        html += '<td class="cell-empty">-</td>';
+                    } else {
+                        html += `<td>
+                            <div class="cell-value">
+                                <span class="cell-temas">${cell.temas}</span>
+                                ${cell.gorusme > 0 ? `<span class="cell-gorusme">(${cell.gorusme} ✓)</span>` : ''}
+                            </div>
+                        </td>`;
+                    }
+                });
+
+                // Row total
+                html += `<td>
+                    <div class="cell-value">
+                        <span class="cell-temas">${rowTemas}</span>
+                        <span class="cell-gorusme">(${rowGorusme} ✓)</span>
+                    </div>
+                </td>`;
+                html += '</tr>';
+            });
+            html += '</tbody>';
+
+            // Footer - Toplam
+            html += '<tfoot><tr><td>TOPLAM</td>';
+            let grandTemas = 0, grandGorusme = 0;
+
+            ilceler.forEach(ilce => {
+                const total = ilceTotals[ilce];
+                grandTemas += total.temas;
+                grandGorusme += total.gorusme;
+                html += `<td>
+                    <div class="cell-value">
+                        <span class="cell-temas">${total.temas}</span>
+                        <span class="cell-gorusme">(${total.gorusme} ✓)</span>
+                    </div>
+                </td>`;
+            });
+
+            html += `<td>
+                <div class="cell-value">
+                    <span class="cell-temas">${grandTemas}</span>
+                    <span class="cell-gorusme">(${grandGorusme} ✓)</span>
+                </div>
+            </td>`;
+            html += '</tr></tfoot>';
+
+            html += '</table>';
+
+            document.getElementById('tableBody').innerHTML = html;
+        }
+
+        // Başlat
+        loadData();
+    </script>
+</body>
+
+</html>

@@ -213,15 +213,99 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Login Overlay */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .login-overlay.hidden {
+            display: none;
+        }
+
+        .login-box {
+            background: #fff;
+            padding: 40px 50px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .login-box h2 {
+            font-size: 20px;
+            color: #1a1a1a;
+            margin-bottom: 24px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 14px 20px;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .login-box input:focus {
+            border-color: #667eea;
+        }
+
+        .login-box input.error {
+            border-color: #e53935;
+            animation: shake 0.3s;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-8px);
+            }
+
+            75% {
+                transform: translateX(8px);
+            }
+        }
+
+        .login-hint {
+            margin-top: 16px;
+            font-size: 12px;
+            color: #999;
+        }
     </style>
 </head>
 
 <body>
+    <!-- Login Overlay -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h2>Şifre Girin</h2>
+            <input type="password" id="passwordInput" placeholder="Şifre" onkeypress="checkPassword(event)">
+            <p class="login-hint">Devam etmek için şifrenizi girin</p>
+        </div>
+    </div>
+
     <h1>İlçe Sorumluları</h1>
     <p class="subtitle">Saha Koordinasyon Araçları</p>
 
     <!-- Ana Seçimler -->
-    <div class="main-grid" id="mainGrid">
+    <div class="main-grid" id="mainGrid" style="grid-template-columns: repeat(4, 220px);">
         <a href="istanbul_harita_v2.html" class="main-card">
             <div class="main-card-icon">
                 <svg viewBox="0 0 24 24">
@@ -230,10 +314,33 @@
                 </svg>
             </div>
             <h2>Harita</h2>
-            <p>İstanbul sosyal haritası - İlçe ve mahalle bazlı analiz</p>
+            <p>İstanbul sosyal haritası</p>
         </a>
 
-        <div class="main-card" onclick="showTools()">
+        <a href="atama_listesi.html" class="main-card">
+            <div class="main-card-icon">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    <path d="M9 12h6M9 16h6" />
+                </svg>
+            </div>
+            <h2>Atama Listesi</h2>
+            <p>İlçe bazlı atama takibi</p>
+        </a>
+
+        <a href="formlar.html" class="main-card">
+            <div class="main-card-icon">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+            <h2>Formlar</h2>
+            <p>İBB Sosyal Hizmetler formları</p>
+        </a>
+
+        <div class="main-card" id="veriAraclariCard" onclick="showTools()">
             <div class="main-card-icon">
                 <svg viewBox="0 0 24 24">
                     <path d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7z" />
@@ -241,7 +348,7 @@
                 </svg>
             </div>
             <h2>Veri Araçları</h2>
-            <p>CSV dönüştürme ve veri işleme araçları</p>
+            <p>CSV dönüştürme araçları</p>
         </div>
     </div>
 
@@ -300,6 +407,44 @@
     </div>
 
     <script>
+        // Şifre kontrolü
+        function checkPassword(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('passwordInput');
+                const password = input.value.toLowerCase().trim();
+
+                if (password === 'saha') {
+                    // Saha rolü - Veri Araçları görünmez
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    document.getElementById('veriAraclariCard').style.display = 'none';
+                    document.getElementById('mainGrid').style.gridTemplateColumns = 'repeat(3, 220px)';
+                    sessionStorage.setItem('userRole', 'saha');
+                } else if (password === 'yönetici') {
+                    // Yönetici rolü - Tüm butonlar görünür
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    sessionStorage.setItem('userRole', 'yonetici');
+                } else {
+                    // Yanlış şifre
+                    input.classList.add('error');
+                    input.value = '';
+                    setTimeout(() => input.classList.remove('error'), 300);
+                }
+            }
+        }
+
+        // Sayfa yüklenince oturum kontrolü
+        window.onload = function () {
+            const role = sessionStorage.getItem('userRole');
+            if (role === 'saha') {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('veriAraclariCard').style.display = 'none';
+                document.getElementById('mainGrid').style.gridTemplateColumns = 'repeat(3, 220px)';
+            } else if (role === 'yonetici') {
+                document.getElementById('loginOverlay').classList.add('hidden');
+            }
+            // Rol yoksa login overlay görünür kalır
+        };
+
         function showTools() {
             document.getElementById('mainGrid').style.display = 'none';
             document.getElementById('toolsSection').classList.add('visible');
