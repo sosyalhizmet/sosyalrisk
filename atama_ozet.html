@@ -340,6 +340,145 @@
         .card.hidden {
             display: none;
         }
+
+        /* ========== RESPONSIVE STYLES ========== */
+
+        /* Tablet (768px ve altı) */
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px;
+                padding-top: 50px;
+            }
+
+            .header h1 {
+                font-size: 18px;
+                margin-top: 10px;
+            }
+
+            .header .subtitle {
+                font-size: 12px;
+            }
+
+            .header-back-link {
+                padding: 6px 10px;
+                font-size: 11px;
+                position: absolute;
+                top: 12px;
+                left: 12px;
+                transform: none;
+            }
+
+            .content {
+                padding: 16px 12px;
+            }
+
+            .tab-toggle button {
+                padding: 10px 20px;
+                font-size: 12px;
+            }
+
+            .card-header {
+                flex-wrap: wrap;
+                gap: 10px;
+                padding: 12px 14px;
+            }
+
+            .card-header h2 {
+                font-size: 14px;
+                width: 100%;
+            }
+
+            .filter-toggle button {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+
+            .card-body {
+                max-height: 60vh;
+            }
+
+            table th,
+            table td {
+                padding: 6px 8px;
+                font-size: 10px;
+            }
+
+            .legend {
+                flex-wrap: wrap;
+                gap: 10px;
+                padding: 12px;
+            }
+
+            .legend-item {
+                font-size: 11px;
+            }
+        }
+
+        /* Mobile (480px ve altı) */
+        @media (max-width: 480px) {
+            .header {
+                padding: 12px;
+            }
+
+            .header h1 {
+                font-size: 16px;
+            }
+
+            .header-back-link {
+                padding: 5px 8px;
+                font-size: 10px;
+                left: 10px;
+            }
+
+            .content {
+                padding: 12px 8px;
+            }
+
+            .tab-toggle {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .tab-toggle button {
+                border-radius: 8px !important;
+                border: 2px solid #667eea !important;
+            }
+
+            .card-header h2 {
+                font-size: 13px;
+            }
+
+            .filter-toggle {
+                width: 100%;
+                justify-content: stretch;
+            }
+
+            .filter-toggle button {
+                flex: 1;
+                padding: 8px 10px;
+            }
+
+            table th,
+            table td {
+                padding: 4px 6px;
+                font-size: 9px;
+            }
+
+            th.ilce-col,
+            td {
+                min-width: 50px;
+            }
+
+            .stat-value {
+                font-size: 10px;
+            }
+
+            .temas-count,
+            .gorusme-count {
+                font-size: 9px;
+                padding: 2px 4px;
+            }
+        }
     </style>
 </head>
 
