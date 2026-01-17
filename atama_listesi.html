@@ -844,6 +844,47 @@
                 opacity: 0.9;
             }
         }
+
+        /* Harita Toggle Butonu */
+        .map-toggle-btn {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            padding: 8px 14px;
+            background: #fff;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .map-toggle-btn:active {
+            background: #667eea;
+            color: #fff;
+        }
+
+        .map-container.hidden {
+            display: none !important;
+        }
+
+        /* Mobilde toggle butonu göster */
+        @media (max-width: 768px) {
+            .map-toggle-btn {
+                display: block;
+            }
+
+            .list-panel .map-toggle-btn {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 12px;
+            }
+        }
     </style>
 </head>
 
@@ -877,12 +918,15 @@
 
     <!-- Detail View -->
     <div class="detail-view" id="detailView">
-        <div class="map-container">
+        <div class="map-container" id="mapContainer">
             <div id="map"></div>
             <div class="map-legend" id="mapLegend"></div>
         </div>
         <div class="list-panel">
             <div class="list-header">
+                <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMap()">
+                    🗺️ Haritayı Gizle
+                </button>
                 <h2 id="listTitle">İlçe Adı</h2>
                 <div class="stats" id="listStats">0 kurum</div>
                 <div class="data-toggle" id="dataToggle">
@@ -952,6 +996,27 @@
         let currentDataType = 'atama'; // 'atama' veya 'muhtar'
         let focusedItemIndex = null; // Seçili öğe
         let gorusmeFilter = 'all'; // 'all' veya durum adı
+        let initialBounds = null; // İlçe ilk yüklemesindeki harita sınırları
+        let isMapHidden = false; // Harita gizli mi
+
+        // Haritayı gizle/göster
+        function toggleMap() {
+            isMapHidden = !isMapHidden;
+            const mapContainer = document.getElementById('mapContainer');
+            const toggleBtn = document.getElementById('mapToggleBtn');
+
+            if (isMapHidden) {
+                mapContainer.classList.add('hidden');
+                toggleBtn.innerHTML = '🗺️ Haritayı Göster';
+            } else {
+                mapContainer.classList.remove('hidden');
+                toggleBtn.innerHTML = '🗺️ Haritayı Gizle';
+                // Harita yeniden görünür olduğunda invalidateSize çağır
+                if (map) {
+                    setTimeout(() => map.invalidateSize(), 100);
+                }
+            }
+        }
 
         // Görüşme durumu -> CSS sınıfı eşlemesi
         const GORUSME_SINIFLAR = {
@@ -1425,6 +1490,8 @@
             if (bounds.length > 0 && !map._boundsSet) {
                 map.fitBounds(bounds, { padding: [50, 50] });
                 map._boundsSet = true;
+                // İlk yükleme sınırlarını kaydet
+                initialBounds = L.latLngBounds(bounds);
             }
         }
 
@@ -1612,6 +1679,11 @@
 
             renderMarkers();
 
+            // Zoom'u başlangıca döndür
+            if (initialBounds && map) {
+                map.fitBounds(initialBounds, { padding: [50, 50] });
+            }
+
             document.querySelectorAll('.address-item').forEach(el => {
                 el.classList.remove('hidden');
             });
@@ -1633,6 +1705,10 @@
                 focusedItemIndex = null;
                 highlightListItem(-1); // Seçimi kaldır
                 renderMarkers();
+                // Zoom'u başlangıca döndür
+                if (initialBounds && map) {
+                    map.fitBounds(initialBounds, { padding: [50, 50] });
+                }
                 return;
             }
 
