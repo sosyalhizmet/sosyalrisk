@@ -575,6 +575,275 @@
             font-size: 10px;
             color: #999;
         }
+
+        /* ========== RESPONSIVE STYLES ========== */
+
+        /* Tablet Landscape (1024px ve altı) */
+        @media (max-width: 1024px) {
+            .list-panel {
+                width: 450px;
+            }
+
+            .gallery-view {
+                padding: 30px 16px;
+            }
+
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 180px));
+                gap: 12px;
+            }
+
+            .ilce-card {
+                padding: 20px 12px;
+            }
+
+            .ilce-card-icon {
+                width: 40px;
+                height: 40px;
+            }
+
+            .ilce-card-icon svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
+
+        /* Tablet Portrait (768px ve altı) */
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .header .subtitle {
+                font-size: 12px;
+            }
+
+            .header-back-link {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            /* Özet Tablo linki mobilde gizle */
+            .header-back-link[href="atama_ozet.html"] {
+                display: none;
+            }
+
+            .detail-view {
+                flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 70px);
+            }
+
+            .map-container {
+                height: 40vh;
+                min-height: 280px;
+            }
+
+            .list-panel {
+                width: 100%;
+                height: auto;
+                flex: 1;
+                border-left: none;
+                border-top: 1px solid #e8e8e8;
+            }
+
+            .list-content {
+                max-height: calc(60vh - 150px);
+                overflow-y: auto;
+            }
+
+            .map-legend {
+                bottom: 10px;
+                left: 10px;
+                padding: 10px 14px;
+                max-width: 200px;
+                font-size: 11px;
+            }
+
+            .legend-item {
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+
+            .gallery-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+
+            .ilce-card {
+                padding: 16px 10px;
+            }
+
+            .ilce-card h3 {
+                font-size: 12px;
+            }
+
+            .ilce-card .count {
+                font-size: 11px;
+            }
+
+            .data-toggle {
+                flex-wrap: wrap;
+            }
+
+            .data-toggle button {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .filter-row {
+                gap: 4px;
+            }
+
+            .filter-btn {
+                padding: 4px 8px;
+                font-size: 9px;
+            }
+        }
+
+        /* Mobile (480px ve altı) */
+        @media (max-width: 480px) {
+            .header {
+                padding: 12px;
+            }
+
+            .header h1 {
+                font-size: 16px;
+                margin-top: 40px;
+            }
+
+            .header-back-link {
+                padding: 5px 10px;
+                font-size: 11px;
+                left: 10px;
+            }
+
+            .gallery-view {
+                padding: 20px 12px;
+            }
+
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .ilce-card {
+                padding: 14px 8px;
+            }
+
+            .ilce-card-icon {
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
+            }
+
+            .ilce-card-icon svg {
+                width: 18px;
+                height: 18px;
+            }
+
+            .ilce-card h3 {
+                font-size: 11px;
+            }
+
+            .ilce-card .count {
+                font-size: 10px;
+            }
+
+            .map-container {
+                height: 35vh;
+                min-height: 220px;
+            }
+
+            .list-header {
+                padding: 12px 14px;
+            }
+
+            .list-header h2 {
+                font-size: 16px;
+            }
+
+            .list-header .stats {
+                font-size: 12px;
+            }
+
+            .list-content {
+                padding: 12px;
+            }
+
+            .address-item {
+                padding: 12px;
+                margin-bottom: 10px;
+            }
+
+            .address-id {
+                font-size: 10px;
+                padding: 4px 8px;
+            }
+
+            .address-name {
+                font-size: 13px;
+            }
+
+            .address-detail {
+                font-size: 11px;
+                padding: 6px 8px;
+            }
+
+            .address-tag {
+                font-size: 9px;
+                padding: 3px 8px;
+            }
+
+            .map-legend {
+                bottom: 8px;
+                left: 8px;
+                padding: 8px 10px;
+                max-width: 160px;
+            }
+
+            .legend-title {
+                font-size: 9px;
+            }
+
+            .legend-item {
+                font-size: 10px;
+                gap: 6px;
+            }
+
+            .legend-color {
+                width: 10px;
+                height: 10px;
+            }
+
+            .gorusme-badge {
+                font-size: 8px;
+                padding: 2px 6px;
+            }
+        }
+
+        /* Touch-friendly improvements */
+        @media (hover: none) {
+            .ilce-card:hover {
+                transform: none;
+                box-shadow: none;
+            }
+
+            .address-item:hover {
+                border-color: #e8e8e8;
+                box-shadow: none;
+            }
+
+            .ilce-card:active,
+            .address-item:active {
+                transform: scale(0.98);
+                opacity: 0.9;
+            }
+        }
     </style>
 </head>
 
