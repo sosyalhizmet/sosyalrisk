@@ -71,6 +71,39 @@
             margin: 0 auto;
         }
 
+        /* Gallery Filter Toggle */
+        .gallery-filter-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 24px;
+        }
+
+        .gallery-filter-toggle button {
+            padding: 10px 24px;
+            border: 2px solid #667eea;
+            background: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .gallery-filter-toggle button:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+
+        .gallery-filter-toggle button:last-child {
+            border-radius: 0 8px 8px 0;
+            border-left: none;
+        }
+
+        .gallery-filter-toggle button.active {
+            background: #667eea;
+            color: #fff;
+        }
+
         .gallery-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 200px));
@@ -1047,6 +1080,10 @@
 
     <!-- Gallery View -->
     <div class="gallery-view" id="galleryView">
+        <div class="gallery-filter-toggle">
+            <button id="btnTumu" onclick="setIlceFilter('tumu')">Tümü</button>
+            <button id="btnAktif" class="active" onclick="setIlceFilter('aktif')">Aktif İlçeler</button>
+        </div>
         <div class="gallery-grid" id="galleryGrid">
             <!-- İlçe kartları buraya gelecek -->
         </div>
@@ -1126,9 +1163,11 @@
         // State
         let allAtamaData = [];
         let allMuhtarData = [];
+        let allAdresData = []; // Tüm Adresler sayfasından
         let gorusmeData = {}; // Aktör ID -> görüşme durumu map
         let gorusmeDurumlari = []; // Benzersiz görüşme durumları
-        let ilceGroups = {};
+        let ilceGroups = {}; // Aktif (atama yapılmış) ilçeler
+        let allIlceGroups = {}; // Tüm ilçeler (veri.xlsx'den)
         let muhtarGroups = {};
         let map = null;
         let markerLayer = null;
@@ -1140,6 +1179,7 @@
         let gorusmeFilter = 'all'; // 'all' veya durum adı
         let initialBounds = null; // İlçe ilk yüklemesindeki harita sınırları
         let isMapHidden = false; // Harita gizli mi
+        let ilceFilter = 'aktif'; // 'tumu' veya 'aktif'
 
         // Haritayı gizle/göster
         function toggleMap() {
@@ -1311,7 +1351,7 @@
                     console.warn('Görüşme verisi yüklenemedi:', e);
                 }
 
-                // İlçelere göre grupla - Atama
+                // İlçelere göre grupla - Atama (aktif ilçeler)
                 ilceGroups = {};
                 allAtamaData.forEach(row => {
                     let ilce = (row['ILCE'] || '').toString().trim();
@@ -1321,6 +1361,27 @@
                     }
                     ilceGroups[ilceKey].items.push(row);
                 });
+
+                // Tüm Adresler sayfasından tüm ilçeleri yükle
+                const tumAdresSheet = workbook.Sheets['Tüm Adresler'];
+                if (tumAdresSheet) {
+                    allAdresData = XLSX.utils.sheet_to_json(tumAdresSheet);
+                    console.log('Tüm Adresler sayfasından', allAdresData.length, 'kayıt yüklendi');
+
+                    // Tüm ilçeleri grupla
+                    allIlceGroups = {};
+                    allAdresData.forEach(row => {
+                        let ilce = (row['ILCE'] || '').toString().trim();
+                        const ilceKey = normalizeTr(ilce);
+                        if (ilceKey && !allIlceGroups[ilceKey]) {
+                            allIlceGroups[ilceKey] = { name: ilce, items: [] };
+                        }
+                        if (ilceKey) {
+                            allIlceGroups[ilceKey].items.push(row);
+                        }
+                    });
+                    console.log('Tüm ilçe sayısı:', Object.keys(allIlceGroups).length);
+                }
 
                 // İlçelere göre grupla - Muhtar
                 muhtarGroups = {};
@@ -1354,11 +1415,23 @@
             return gorusme.durum;
         }
 
+        // İlçe filtresi değiştir
+        function setIlceFilter(filter) {
+            ilceFilter = filter;
+            document.getElementById('btnTumu').classList.toggle('active', filter === 'tumu');
+            document.getElementById('btnAktif').classList.toggle('active', filter === 'aktif');
+            renderGallery();
+        }
+
         // Render Gallery
         function renderGallery() {
             const grid = document.getElementById('galleryGrid');
-            const sortedIlces = Object.keys(ilceGroups).sort((a, b) => {
-                return ilceGroups[b].items.length - ilceGroups[a].items.length;
+
+            // Filtreye göre ilçeleri seç
+            const sourceGroups = ilceFilter === 'aktif' ? ilceGroups : allIlceGroups;
+            const sortedIlces = Object.keys(sourceGroups).sort((a, b) => {
+                // Alfabetik sıralama (A-Z, Türkçe karakterler dahil)
+                return sourceGroups[a].name.localeCompare(sourceGroups[b].name, 'tr');
             });
 
             if (sortedIlces.length === 0) {
@@ -1367,7 +1440,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
-                        <p>Henüz atama yapılmış kurum bulunmuyor.</p>
+                        <p>Henüz veri bulunmuyor.</p>
                     </div>
                 `;
                 return;
@@ -1375,7 +1448,9 @@
 
             // İlçe bazlı temas ve görüşme istatistiklerini hesapla
             function getIlceStats(ilceKey) {
-                const ilce = ilceGroups[ilceKey];
+                const ilce = sourceGroups[ilceKey];
+                if (!ilce) return { temas: 0, gorusme: 0 };
+
                 let temasCount = 0;
                 let gorusmeCount = 0;
 
@@ -1393,11 +1468,20 @@
                 return { temas: temasCount, gorusme: gorusmeCount };
             }
 
+            // Aktif ilçe mi kontrol et (atama yapılmış mı)
+            function isAktifIlce(ilceKey) {
+                return ilceGroups.hasOwnProperty(ilceKey);
+            }
+
             grid.innerHTML = sortedIlces.map(ilceKey => {
-                const ilce = ilceGroups[ilceKey];
+                const ilce = sourceGroups[ilceKey];
                 const stats = getIlceStats(ilceKey);
+                const isAktif = isAktifIlce(ilceKey);
+                const cardStyle = isAktif ? '' : 'opacity: 0.6; border-style: dashed;';
+                const kurumText = ilceFilter === 'aktif' ? `${ilce.items.length} kurum` : (isAktif ? `${ilceGroups[ilceKey].items.length} kurum atandı` : `${ilce.items.length} kurum (atama yok)`);
+
                 return `
-                    <div class="ilce-card" onclick="showDetail('${ilceKey}')">
+                    <div class="ilce-card" style="${cardStyle}" onclick="showDetail('${ilceKey}')">
                         <div class="ilce-card-icon">
                             <svg viewBox="0 0 24 24">
                                 <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -1405,7 +1489,7 @@
                             </svg>
                         </div>
                         <h3>${ilce.name}</h3>
-                        <div class="count">${ilce.items.length} kurum</div>
+                        <div class="count">${kurumText}</div>
                         <div class="ilce-card-stats">
                             <div class="ilce-stat-row">
                                 <span class="stat-dot temas"></span>
@@ -1532,7 +1616,8 @@
             console.log('updateDetailView called - dataType:', currentDataType, 'ilceKey:', ilceKey);
 
             if (currentDataType === 'atama') {
-                const ilce = ilceGroups[ilceKey];
+                // Önce aktif ilçelerden bak, yoksa tüm ilçelerden
+                const ilce = ilceGroups[ilceKey] || allIlceGroups[ilceKey];
                 items = ilce ? ilce.items : [];
                 console.log('Atama items found:', items.length);
             } else {
@@ -1554,7 +1639,7 @@
             currentItems = items;
             console.log('currentItems set to:', currentItems.length, 'items');
 
-            const ilceName = ilceGroups[ilceKey]?.name || currentIlce;
+            const ilceName = ilceGroups[ilceKey]?.name || allIlceGroups[ilceKey]?.name || currentIlce;
             document.getElementById('listTitle').textContent = ilceName;
 
             if (currentDataType === 'atama') {
