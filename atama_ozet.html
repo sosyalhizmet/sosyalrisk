@@ -621,7 +621,7 @@
                 const gorusmeData = XLSX.utils.sheet_to_json(gorusmeSheet);
 
                 // Adres verisi (ilçe bilgisi için)
-                const adresResponse = await fetch('atama_listesi.xlsx');
+                const adresResponse = await fetch('atama_listesi/atama_listesi.xlsx');
                 const adresBuffer = await adresResponse.arrayBuffer();
                 const adresWorkbook = XLSX.read(adresBuffer, { type: 'array' });
 

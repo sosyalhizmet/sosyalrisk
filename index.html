@@ -440,6 +440,75 @@
             font-size: 12px;
             color: #999;
         }
+
+        /* Çıkış Butonu */
+        .logout-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #666;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .logout-btn:hover {
+            border-color: #e53935;
+            color: #e53935;
+            background: #fff5f5;
+        }
+
+        .logout-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .logout-btn.hidden {
+            display: none;
+        }
+
+        /* Mobil çıkış butonu */
+        @media (max-width: 768px) {
+            .logout-btn {
+                top: 12px;
+                right: 12px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .logout-btn svg {
+                width: 14px;
+                height: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logout-btn {
+                top: 10px;
+                right: 10px;
+                padding: 5px 10px;
+                font-size: 11px;
+                gap: 4px;
+            }
+
+            .logout-btn svg {
+                width: 12px;
+                height: 12px;
+            }
+        }
     </style>
 </head>
 
@@ -452,6 +521,16 @@
             <p class="login-hint">Devam etmek için şifrenizi girin</p>
         </div>
     </div>
+
+    <!-- Çıkış Butonu -->
+    <button class="logout-btn hidden" id="logoutBtn" onclick="logout()">
+        <svg viewBox="0 0 24 24">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        Çıkış
+    </button>
 
     <h1>İlçe Sorumluları</h1>
     <p class="subtitle">Saha Koordinasyon Araçları</p>
@@ -570,11 +649,13 @@
                     document.getElementById('loginOverlay').classList.add('hidden');
                     document.getElementById('veriAraclariCard').style.display = 'none';
                     document.getElementById('mainGrid').style.gridTemplateColumns = 'repeat(3, 220px)';
-                    sessionStorage.setItem('userRole', 'saha');
+                    document.getElementById('logoutBtn').classList.remove('hidden');
+                    localStorage.setItem('userRole', 'saha');
                 } else if (password === 'yönetici') {
                     // Yönetici rolü - Tüm butonlar görünür
                     document.getElementById('loginOverlay').classList.add('hidden');
-                    sessionStorage.setItem('userRole', 'yonetici');
+                    document.getElementById('logoutBtn').classList.remove('hidden');
+                    localStorage.setItem('userRole', 'yonetici');
                 } else {
                     // Yanlış şifre
                     input.classList.add('error');
@@ -584,15 +665,30 @@
             }
         }
 
+        // Çıkış fonksiyonu
+        function logout() {
+            localStorage.removeItem('userRole');
+            document.getElementById('logoutBtn').classList.add('hidden');
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordInput').focus();
+            // Veri araçları kartını ve gridi resetle
+            document.getElementById('veriAraclariCard').style.display = '';
+            document.getElementById('mainGrid').style.gridTemplateColumns = 'repeat(4, 220px)';
+            hideTools();
+        }
+
         // Sayfa yüklenince oturum kontrolü
         window.onload = function () {
-            const role = sessionStorage.getItem('userRole');
+            const role = localStorage.getItem('userRole');
             if (role === 'saha') {
                 document.getElementById('loginOverlay').classList.add('hidden');
                 document.getElementById('veriAraclariCard').style.display = 'none';
                 document.getElementById('mainGrid').style.gridTemplateColumns = 'repeat(3, 220px)';
+                document.getElementById('logoutBtn').classList.remove('hidden');
             } else if (role === 'yonetici') {
                 document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('logoutBtn').classList.remove('hidden');
             }
             // Rol yoksa login overlay görünür kalır
         };

@@ -479,6 +479,7 @@
             dgSheet: 'GG_Dezavantajli_Mah_Pivo',
             riskSheet: 'GG_Risk_Analizi',
             mahalleLabelMinZoom: 13,
+            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768,
             colors: ['#e8eaf6', '#c5cae9', '#9fa8da', '#7986cb', '#5c6bc0', '#3f51b5', '#303f9f', '#1a237e']
         };
 
@@ -1162,13 +1163,15 @@
             const ilceKey = normalizeTr(ilceName);
             const data = getIlceData()[ilceKey];
 
-            // Tooltip
-            let content = `<div class="tooltip-title">${ilceName}</div>`;
-            if (data) {
-                content += `<div class="tooltip-value">Ortalama: ${formatNumber(data.ortalama)}</div>`;
-                content += `<div class="tooltip-subtitle">${data.mahalleSayisi || 0} mahalle</div>`;
+            // Tooltip - mobilde gösterme (mahalle görünümünü kapatmasın)
+            if (!CONFIG.isMobile) {
+                let content = `<div class="tooltip-title">${ilceName}</div>`;
+                if (data) {
+                    content += `<div class="tooltip-value">Ortalama: ${formatNumber(data.ortalama)}</div>`;
+                    content += `<div class="tooltip-subtitle">${data.mahalleSayisi || 0} mahalle</div>`;
+                }
+                layer.bindTooltip(content, { direction: 'center' });
             }
-            layer.bindTooltip(content, { direction: 'center' });
 
             // Hover
             layer.on('mouseover', function () {
