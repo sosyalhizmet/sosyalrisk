@@ -937,17 +937,88 @@
             display: none !important;
         }
 
-        /* Mobilde toggle butonu göster */
+        /* Mobil Kontrol Hub - ikon + lejantlar yan yana */
+        .mobile-control-hub {
+            display: none;
+        }
+
         @media (max-width: 768px) {
             .map-toggle-btn {
-                display: block;
+                display: none;
+                /* Artık mobile-control-hub içinde */
             }
 
-            .list-panel .map-toggle-btn {
-                position: relative;
-                top: auto;
-                right: auto;
+            .mobile-control-hub {
+                display: flex;
+                align-items: center;
+                gap: 8px;
                 margin-bottom: 12px;
+                flex-wrap: wrap;
+            }
+
+            .mobile-toggle-icon {
+                width: 36px;
+                height: 36px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #fff;
+                border: 2px solid #667eea;
+                border-radius: 8px;
+                cursor: pointer;
+                flex-shrink: 0;
+                font-size: 18px;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            }
+
+            .mobile-toggle-icon:active {
+                background: #667eea;
+            }
+
+            .mobile-legend-items {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex-wrap: wrap;
+                flex: 1;
+            }
+
+            .mobile-legend-item {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                padding: 4px 8px;
+                background: #f5f5f5;
+                border-radius: 12px;
+                font-size: 10px;
+                color: #333;
+                cursor: pointer;
+                white-space: nowrap;
+            }
+
+            .mobile-legend-item:active {
+                background: #e0e0e0;
+            }
+
+            .mobile-legend-item.active {
+                background: #e8eaf6;
+                font-weight: 600;
+            }
+
+            .mobile-legend-item.dimmed {
+                opacity: 0.4;
+            }
+
+            .mobile-legend-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                flex-shrink: 0;
+            }
+
+            /* Desktop legend'ı mobilde gizle */
+            .map-legend {
+                display: none !important;
             }
         }
     </style>
@@ -989,9 +1060,15 @@
         </div>
         <div class="list-panel">
             <div class="list-header">
-                <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMap()">
-                    🗺️ Haritayı Gizle
-                </button>
+                <!-- Mobil: ikon + lejantlar yan yana -->
+                <div class="mobile-control-hub" id="mobileControlHub">
+                    <div class="mobile-toggle-icon" id="mobileToggleIcon" onclick="toggleMap()">
+                        🗺️
+                    </div>
+                    <div class="mobile-legend-items" id="mobileLegendItems">
+                        <!-- Dinamik olarak doldurulacak -->
+                    </div>
+                </div>
                 <h2 id="listTitle">İlçe Adı</h2>
                 <div class="stats" id="listStats">0 kurum</div>
                 <div class="data-toggle" id="dataToggle">
@@ -1068,14 +1145,14 @@
         function toggleMap() {
             isMapHidden = !isMapHidden;
             const mapContainer = document.getElementById('mapContainer');
-            const toggleBtn = document.getElementById('mapToggleBtn');
+            const mobileIcon = document.getElementById('mobileToggleIcon');
 
             if (isMapHidden) {
                 mapContainer.classList.add('hidden');
-                toggleBtn.innerHTML = '🗺️ Haritayı Göster';
+                if (mobileIcon) mobileIcon.innerHTML = '🗺️';
             } else {
                 mapContainer.classList.remove('hidden');
-                toggleBtn.innerHTML = '🗺️ Haritayı Gizle';
+                if (mobileIcon) mobileIcon.innerHTML = '🗺️';
                 // Harita yeniden görünür olduğunda invalidateSize çağır
                 if (map) {
                     setTimeout(() => map.invalidateSize(), 100);
@@ -1685,9 +1762,10 @@
                 btn.classList.toggle('active', btn.dataset.filter === filter);
             });
 
-            // Listeyi ve haritayı yeniden render et
+            // Listeyi, haritayı ve lejantları yeniden render et
             renderList(currentItems);
             renderMarkers();
+            renderLegend(currentItems); // Lejantları da filtrele
 
             // Stats güncelle
             if (filter === 'all') {
@@ -1702,9 +1780,16 @@
         // Render Legend
         function renderLegend(items) {
             const legend = document.getElementById('mapLegend');
+            const mobileLegend = document.getElementById('mobileLegendItems');
             const categories = {};
 
-            items.forEach(item => {
+            // Görüşme filtresini uygula
+            let filteredItems = items;
+            if (gorusmeFilter !== 'all') {
+                filteredItems = items.filter(item => getGorusmeDurum(item) === gorusmeFilter);
+            }
+
+            filteredItems.forEach(item => {
                 const kat = item['ANA KATEGORİ'] || 'Diğer';
                 const katKey = normalizeTr(kat);
                 if (!categories[katKey]) {
@@ -1718,16 +1803,29 @@
                 categories[katKey].count++;
             });
 
+            const sortedCategories = Object.values(categories).sort((a, b) => b.count - a.count);
+
+            // Desktop legend
             legend.innerHTML = `
                 <div class="legend-title">Ana Kategoriler</div>
-                ${Object.values(categories).sort((a, b) => b.count - a.count).map(cat => `
-                    <div class="legend-item" data-kategori="${cat.key}" onclick="filterByKategori('${cat.key}')">
+                ${sortedCategories.map(cat => `
+                    <div class="legend-item${selectedKategori === cat.key ? ' active' : ''}${selectedKategori && selectedKategori !== cat.key ? ' dimmed' : ''}" data-kategori="${cat.key}" onclick="filterByKategori('${cat.key}')">
                         <div class="legend-color" style="background: ${cat.color}"></div>
                         <span>${cat.name} (${cat.count})</span>
                     </div>
                 `).join('')}
-                <div class="legend-clear" id="legendClear" onclick="clearFilter()">✕ Filtreyi Temizle</div>
+                <div class="legend-clear${selectedKategori ? ' visible' : ''}" id="legendClear" onclick="clearFilter()">✕ Filtreyi Temizle</div>
             `;
+
+            // Mobile legend
+            if (mobileLegend) {
+                mobileLegend.innerHTML = sortedCategories.map(cat => `
+                    <div class="mobile-legend-item${selectedKategori === cat.key ? ' active' : ''}${selectedKategori && selectedKategori !== cat.key ? ' dimmed' : ''}" data-kategori="${cat.key}" onclick="filterByKategori('${cat.key}')">
+                        <span class="mobile-legend-dot" style="background: ${cat.color}"></span>
+                        <span>${cat.name} (${cat.count})</span>
+                    </div>
+                `).join('');
+            }
         }
 
         // Filter by Kategori
