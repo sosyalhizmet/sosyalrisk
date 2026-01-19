@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atama Aracı</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 24px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .header-back-link {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #fff;
+            text-decoration: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            transition: all 0.2s;
+        }
+
+        .header-back-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Content */
+        .content {
+            max-width: 98%;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Card */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .card-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #43a047;
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #388e3c;
+        }
+
+        .btn-warning {
+            background: #fb8c00;
+            color: #fff;
+        }
+
+        .btn-warning:hover {
+            background: #f57c00;
+        }
+
+        /* İlçe Filtre */
+        .ilce-filter-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ilce-filter {
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 200px;
+            cursor: pointer;
+        }
+
+        .ilce-filter:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Card Body */
+        .card-body {
+            padding: 0;
+            overflow-x: auto;
+            max-height: calc(100vh - 280px);
+            overflow-y: auto;
+        }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border: 1px solid #eee;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            white-space: nowrap;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .data-table tbody tr.evet-row {
+            background: #e8f5e9;
+        }
+
+        .data-table tbody tr.hayir-row {
+            background: #fff;
+        }
+
+        /* İlçe başlık satırı */
+        .data-table tbody tr.ilce-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        .data-table tbody tr.ilce-header td {
+            font-weight: 700;
+            font-size: 14px;
+            padding: 12px 16px;
+        }
+
+        /* Atama Durumu Select */
+        .atama-select {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            min-width: 70px;
+        }
+
+        .atama-select.evet {
+            background: #e8f5e9;
+            border-color: #81c784;
+            color: #2e7d32;
+        }
+
+        .atama-select.hayir,
+        .atama-select.bos {
+            background: #fff;
+            border-color: #e0e0e0;
+            color: #666;
+        }
+
+        /* Görüşme Durumu Badge */
+        .gorusme-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .gorusme-gerceklestirildi {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .gorusme-randevu-verildi {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .gorusme-randevu-tarih {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .gorusme-reddetti {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .gorusme-adres-hatali {
+            background: #fce4ec;
+            color: #ad1457;
+        }
+
+        .gorusme-temas-kurulmadi {
+            background: #f5f5f5;
+            color: #757575;
+        }
+
+        /* Summary Cards */
+        .summary-row {
+            display: flex;
+            gap: 16px;
+            padding: 16px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            flex-wrap: wrap;
+        }
+
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .summary-item .label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .summary-item .value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .summary-item .value.evet {
+            color: #43a047;
+        }
+
+        .summary-item .value.hayir {
+            color: #9e9e9e;
+        }
+
+        .summary-item .value.total {
+            color: #667eea;
+        }
+
+        .summary-item .value.warning {
+            color: #fb8c00;
+        }
+
+        .summary-item .value.success {
+            color: #43a047;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #eee;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px;
+                padding-top: 50px;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .header-back-link {
+                top: 12px;
+                transform: none;
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+
+            .content {
+                padding: 16px 12px;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .btn-group {
+                width: 100%;
+            }
+
+            .btn {
+                flex: 1;
+                justify-content: center;
+            }
+
+            .ilce-filter {
+                width: 100%;
+            }
+
+            .summary-row {
+                flex-direction: column;
+            }
+
+            .summary-item {
+                width: 100%;
+            }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 12px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .preview-ilce {
+            margin-bottom: 24px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .preview-ilce-header {
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .preview-ilce-body {
+            padding: 16px;
+        }
+
+        .preview-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .preview-stat:last-child {
+            border-bottom: none;
+        }
+
+        .preview-stat .label {
+            color: #666;
+        }
+
+        .preview-stat .value {
+            font-weight: 600;
+        }
+
+        .preview-stat .value.added {
+            color: #43a047;
+        }
+
+        .preview-stat .value.removed {
+            color: #e53935;
+        }
+
+        .preview-kategori {
+            display: inline-block;
+            padding: 3px 8px;
+            margin: 2px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <a href="atama_listesi.html" class="header-back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Atama Listesine Dön
+        </a>
+        <h1>Atama Aracı</h1>
+        <p class="subtitle">İlçe bazlı atama yönetimi</p>
+    </div>
+
+    <div class="content">
+        <div class="card">
+            <div class="card-header">
+                <div class="ilce-filter-container">
+                    <label for="ilceFilter">📍 İlçe Filtresi:</label>
+                    <select id="ilceFilter" class="ilce-filter" onchange="filterTable()">
+                        <option value="">Tüm Aktif İlçeler</option>
+                    </select>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="onizle()">
+                        🔍 Önizle
+                    </button>
+                    <button class="btn btn-warning" onclick="otomatikAta()">
+                        ⚡ Otomatik Ata
+                    </button>
+                    <button class="btn btn-success" onclick="indir()">
+                        📥 İndir
+                    </button>
+                </div>
+            </div>
+
+            <div class="summary-row" id="summaryRow">
+                <div class="summary-item">
+                    <span class="label">Aktif İlçe:</span>
+                    <span class="value total" id="ilceCount">-</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Toplam Satır:</span>
+                    <span class="value total" id="totalCount">-</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Atama Evet:</span>
+                    <span class="value evet" id="evetCount">-</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Atama Boş/Hayır:</span>
+                    <span class="value hayir" id="hayirCount">-</span>
+                </div>
+            </div>
+
+            <div class="card-body" id="tableBody">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <div>Veriler yükleniyor...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Önizle Modal -->
+    <div class="modal-overlay" id="previewModal" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>📊 Değişiklik Önizlemesi</h3>
+                <button class="modal-close" onclick="closePreviewModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="previewBody">
+                <!-- Dinamik içerik -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let originalWorkbook = null;
+        let adreslerData = []; // Orijinal Excel verisi (tüm satırlar)
+        let originalAtamaDurumlari = {}; // Orijinal atama durumları (değişiklik takibi için)
+        let gorusmeData = {}; // ID -> görüşme durumu
+        let aktifIlceler = new Set(); // Aktif ilçeler
+        let displayData = []; // Gösterilecek satırlar (aktif ilçelerin tümü)
+        let currentFilter = ''; // Şu anki ilçe filtresi
+
+        // Görüşme durumu sınıfları
+        const GORUSME_SINIFLAR = {
+            'Görüşme Gerçekleştirildi': 'gerceklestirildi',
+            'Randevu Verildi': 'randevu-verildi',
+            'Randevu Tarihi Belirtilmedi': 'randevu-tarih',
+            'Görüşmeyi Reddetti': 'reddetti',
+            'Adres Hatalı/Güncel Değil': 'adres-hatali',
+            'Temas Kurulmadı': 'temas-kurulmadi'
+        };
+
+        // Listeden çıkarılacak durumlar (atamadan düşürülecek)
+        const CIKARILACAK_DURUMLAR = [
+            'Görüşme Gerçekleştirildi',
+            'Adres Hatalı/Güncel Değil',
+            'Görüşmeyi Reddetti'
+        ];
+
+        // Normalize Türkçe
+        function normalizeTr(str) {
+            return (str || '').toUpperCase()
+                .replace(/İ/g, 'I').replace(/Ş/g, 'S').replace(/Ğ/g, 'G')
+                .replace(/Ü/g, 'U').replace(/Ö/g, 'O').replace(/Ç/g, 'C')
+                .replace(/ı/g, 'I').replace(/i/g, 'I')
+                .replace(/ş/g, 'S').replace(/ğ/g, 'G').replace(/ü/g, 'U')
+                .replace(/ö/g, 'O').replace(/ç/g, 'C');
+        }
+
+        // Veri yükle
+        async function loadData() {
+            try {
+                // Atama listesi
+                const adresResponse = await fetch('atama_listesi/atama_listesi.xlsx');
+                const adresBuffer = await adresResponse.arrayBuffer();
+                originalWorkbook = XLSX.read(adresBuffer, { type: 'array' });
+
+                const adresSheet = originalWorkbook.Sheets['Adresler'];
+                adreslerData = XLSX.utils.sheet_to_json(adresSheet);
+                console.log('Adresler sayfasından', adreslerData.length, 'kayıt yüklendi');
+
+                // Her satıra orijinal index ekle ve orijinal atama durumunu kaydet
+                adreslerData.forEach((row, idx) => {
+                    row._originalIndex = idx;
+                    // Orijinal atama durumunu kaydet (değişiklik takibi için)
+                    const id = (row['ID'] || '').toString().trim();
+                    const atamaDurumu = (row['Atama Durumu'] || '').toString().trim();
+                    if (id) {
+                        originalAtamaDurumlari[id] = atamaDurumu;
+                    }
+                });
+
+                // Görüşme verisi
+                const gorusmeResponse = await fetch('veri/veri.xlsx');
+                const gorusmeBuffer = await gorusmeResponse.arrayBuffer();
+                const gorusmeWorkbook = XLSX.read(gorusmeBuffer, { type: 'array' });
+
+                const gorusmeSheet = gorusmeWorkbook.Sheets['Gorusme_Durum_Birlestiril'];
+                if (gorusmeSheet) {
+                    const gorusmeRawData = XLSX.utils.sheet_to_json(gorusmeSheet);
+                    gorusmeRawData.forEach(row => {
+                        const aktorId = (row['Aktör ID'] || '').toString().trim();
+                        const durum = (row['Görüşme Yapıldı mı?'] || '').toString().trim();
+                        if (aktorId) {
+                            gorusmeData[aktorId] = durum;
+                        }
+                    });
+                    console.log('Görüşme verisi yüklendi:', Object.keys(gorusmeData).length, 'kayıt');
+                }
+
+                // Aktif ilçeleri bul: En az bir satırında "Atama Durumu = Evet" olan ilçeler
+                aktifIlceler = new Set();
+                adreslerData.forEach(row => {
+                    const atamaDurumu = (row['Atama Durumu'] || '').toString().trim();
+                    if (atamaDurumu === 'Evet') {
+                        const ilce = (row['ILCE'] || '').toString().trim();
+                        if (ilce) aktifIlceler.add(ilce);
+                    }
+                });
+                console.log('Aktif ilçe sayısı:', aktifIlceler.size);
+
+                // Aktif ilçelerin TÜM satırlarını al (Excel sırasını koru)
+                displayData = adreslerData.filter(row => {
+                    const ilce = (row['ILCE'] || '').toString().trim();
+                    return aktifIlceler.has(ilce);
+                });
+                console.log('Gösterilecek satır sayısı:', displayData.length);
+
+                // İlçe dropdown'ını doldur
+                const sortedIlceler = Array.from(aktifIlceler).sort((a, b) => a.localeCompare(b, 'tr'));
+                const select = document.getElementById('ilceFilter');
+                select.innerHTML = '<option value="">Tüm Aktif İlçeler</option>' +
+                    sortedIlceler.map(ilce => `<option value="${ilce}">${ilce}</option>`).join('');
+
+                renderTable();
+
+            } catch (err) {
+                console.error('Veri yüklenemedi:', err);
+                document.getElementById('tableBody').innerHTML = `
+                    <div class="loading" style="color: #e53935;">
+                        Hata: ${err.message}
+                    </div>
+                `;
+            }
+        }
+
+        // İlçe filtrele
+        function filterTable() {
+            currentFilter = document.getElementById('ilceFilter').value;
+            renderTable();
+        }
+
+        // Görüşme durumu sınıfını al
+        function getGorusmeSinif(durum) {
+            for (const [key, value] of Object.entries(GORUSME_SINIFLAR)) {
+                if (durum && durum.includes(key.substring(0, 10))) {
+                    return value;
+                }
+            }
+            return 'temas-kurulmadi';
+        }
+
+        // Tabloyu render et
+        function renderTable() {
+            const tableBody = document.getElementById('tableBody');
+
+            // Filtreleme
+            let filteredData = displayData;
+            if (currentFilter) {
+                filteredData = displayData.filter(row => {
+                    const ilce = (row['ILCE'] || '').toString().trim();
+                    return ilce === currentFilter;
+                });
+            }
+
+            if (filteredData.length === 0) {
+                tableBody.innerHTML = `
+                    <div class="loading" style="color: #666;">
+                        <p>Gösterilecek veri bulunamadı.</p>
+                    </div>
+                `;
+                updateSummary([]);
+                return;
+            }
+
+            // İlçeye göre grupla (görünüm için)
+            const ilceGruplari = {};
+            filteredData.forEach(row => {
+                const ilce = (row['ILCE'] || '').toString().trim();
+                if (!ilceGruplari[ilce]) {
+                    ilceGruplari[ilce] = [];
+                }
+                ilceGruplari[ilce].push(row);
+            });
+
+            let html = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th style="width: 80px;">ID</th>
+                            <th>Kurum Adı</th>
+                            <th style="width: 120px;">İlçe</th>
+                            <th>Mahalle</th>
+                            <th style="width: 120px;">Ana Kategori</th>
+                            <th style="width: 150px;">Görüşme Durumu</th>
+                            <th style="width: 100px;">Atama Durumu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            // İlçelere göre sırala
+            const sortedIlceler = Object.keys(ilceGruplari).sort((a, b) => a.localeCompare(b, 'tr'));
+
+            let globalIndex = 0;
+            sortedIlceler.forEach(ilce => {
+                const ilceSatirlari = ilceGruplari[ilce];
+                const ilceEvetSayisi = ilceSatirlari.filter(r => (r['Atama Durumu'] || '').toString().trim() === 'Evet').length;
+
+                // İlçe başlık satırı
+                html += `
+                    <tr class="ilce-header">
+                        <td colspan="8">📍 ${ilce} (${ilceEvetSayisi}/30 atama)</td>
+                    </tr>
+                `;
+
+                ilceSatirlari.forEach((row, localIndex) => {
+                    globalIndex++;
+                    const id = (row['ID'] || '').toString().trim();
+                    const adi = row['ADI'] || '-';
+                    const rowIlce = (row['ILCE'] || '').toString().trim();
+                    const mahalle = row['MAHALLE'] || '-';
+                    const anaKategori = row['ANA KATEGORİ'] || '-';
+                    const gorusmeDurum = gorusmeData[id] || 'Temas Kurulmadı';
+                    const gorusmeSinif = getGorusmeSinif(gorusmeDurum);
+                    const atamaDurumu = (row['Atama Durumu'] || '').toString().trim();
+
+                    // Satır sınıfı
+                    let rowClass = atamaDurumu === 'Evet' ? 'evet-row' : 'hayir-row';
+
+                    // Select sınıfı
+                    let selectClass = 'bos';
+                    if (atamaDurumu === 'Evet') selectClass = 'evet';
+                    else if (atamaDurumu === 'Hayır') selectClass = 'hayir';
+
+                    html += `
+                        <tr class="${rowClass}" data-original-index="${row._originalIndex}">
+                            <td>${globalIndex}</td>
+                            <td>${id}</td>
+                            <td>${adi}</td>
+                            <td>${rowIlce}</td>
+                            <td>${mahalle}</td>
+                            <td>${anaKategori}</td>
+                            <td><span class="gorusme-badge gorusme-${gorusmeSinif}">${gorusmeDurum}</span></td>
+                            <td>
+                                <select class="atama-select ${selectClass}" 
+                                        data-original-index="${row._originalIndex}"
+                                        onchange="updateAtamaDurumu(this)">
+                                    <option value="" ${!atamaDurumu ? 'selected' : ''}>-</option>
+                                    <option value="Evet" ${atamaDurumu === 'Evet' ? 'selected' : ''}>Evet</option>
+                                    <option value="Hayır" ${atamaDurumu === 'Hayır' ? 'selected' : ''}>Hayır</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+
+            html += '</tbody></table>';
+            tableBody.innerHTML = html;
+
+            updateSummary(filteredData);
+        }
+
+        // Atama durumunu güncelle
+        function updateAtamaDurumu(selectEl) {
+            const originalIndex = parseInt(selectEl.dataset.originalIndex);
+            const value = selectEl.value;
+
+            // Ana veride güncelle
+            adreslerData[originalIndex]['Atama Durumu'] = value;
+
+            // displayData'da da güncelle
+            const displayRow = displayData.find(r => r._originalIndex === originalIndex);
+            if (displayRow) {
+                displayRow['Atama Durumu'] = value;
+            }
+
+            // Select sınıfını güncelle
+            selectEl.className = `atama-select ${value === 'Evet' ? 'evet' : (value === 'Hayır' ? 'hayir' : 'bos')}`;
+
+            // Satır sınıfını güncelle
+            const row = selectEl.closest('tr');
+            row.className = value === 'Evet' ? 'evet-row' : 'hayir-row';
+
+            // Tabloyu yeniden render et (ilçe özet sayılarını güncellemek için)
+            renderTable();
+        }
+
+        // Özet güncelle
+        function updateSummary(data) {
+            const evetCount = data.filter(r => (r['Atama Durumu'] || '').toString().trim() === 'Evet').length;
+            const hayirCount = data.length - evetCount;
+
+            // Aktif ilçe sayısı (filtrelenmiş datadaki)
+            const ilceSet = new Set();
+            data.forEach(r => {
+                const ilce = (r['ILCE'] || '').toString().trim();
+                if (ilce) ilceSet.add(ilce);
+            });
+
+            document.getElementById('ilceCount').textContent = ilceSet.size;
+            document.getElementById('totalCount').textContent = data.length;
+            document.getElementById('evetCount').textContent = evetCount;
+            document.getElementById('hayirCount').textContent = hayirCount;
+        }
+
+        // Otomatik ata
+        function otomatikAta() {
+            if (displayData.length === 0) {
+                alert('Gösterilecek veri bulunamadı!');
+                return;
+            }
+
+            console.log('Otomatik atama başlatılıyor...');
+
+            // İlçe bazında işlem yap
+            const ilceGruplari = {};
+            displayData.forEach(row => {
+                const ilce = (row['ILCE'] || '').toString().trim();
+                if (!ilceGruplari[ilce]) {
+                    ilceGruplari[ilce] = [];
+                }
+                ilceGruplari[ilce].push(row);
+            });
+
+            Object.keys(ilceGruplari).forEach(ilce => {
+                const ilceSatirlari = ilceGruplari[ilce];
+                console.log(`\n--- ${ilce} işleniyor (${ilceSatirlari.length} satır) ---`);
+
+                // Adım 1: Çıkarılması gerekenleri belirle
+                ilceSatirlari.forEach(row => {
+                    const id = (row['ID'] || '').toString().trim();
+                    const gorusmeDurum = gorusmeData[id] || '';
+                    const mevcutAtama = (row['Atama Durumu'] || '').toString().trim();
+
+                    // Sadece mevcut Evet olanlarda kontrol et
+                    if (mevcutAtama === 'Evet') {
+                        const cikarilacak = CIKARILACAK_DURUMLAR.some(d => gorusmeDurum.includes(d.substring(0, 10)));
+                        if (cikarilacak) {
+                            row['Atama Durumu'] = 'Hayır';
+                            adreslerData[row._originalIndex]['Atama Durumu'] = 'Hayır';
+                            console.log(`  Çıkarıldı: ${id} (${gorusmeDurum})`);
+                        }
+                    }
+                });
+
+                // Adım 2: Kaç tane Evet kaldı say
+                let evetSayisi = ilceSatirlari.filter(r => (r['Atama Durumu'] || '').toString().trim() === 'Evet').length;
+                console.log(`  Çıkarma sonrası Evet: ${evetSayisi}`);
+
+                // Adım 3: 30'a tamamla (Excel sırasına göre)
+                if (evetSayisi < 30) {
+                    const eksik = 30 - evetSayisi;
+                    console.log(`  ${eksik} adet ekleme yapılacak`);
+
+                    let eklenen = 0;
+                    for (let i = 0; i < ilceSatirlari.length && eklenen < eksik; i++) {
+                        const row = ilceSatirlari[i];
+                        const mevcutAtama = (row['Atama Durumu'] || '').toString().trim();
+
+                        // Boş veya Hayır olanlara Evet yaz
+                        if (mevcutAtama !== 'Evet') {
+                            const id = (row['ID'] || '').toString().trim();
+                            const gorusmeDurum = gorusmeData[id] || '';
+
+                            // Çıkarılacak durumda olanları atlama
+                            const cikarilacak = CIKARILACAK_DURUMLAR.some(d => gorusmeDurum.includes(d.substring(0, 10)));
+                            if (!cikarilacak) {
+                                row['Atama Durumu'] = 'Evet';
+                                adreslerData[row._originalIndex]['Atama Durumu'] = 'Evet';
+                                eklenen++;
+                                console.log(`  Eklendi: ${id}`);
+                            }
+                        }
+                    }
+                    console.log(`  ${eklenen} adet eklendi`);
+                }
+
+                const sonEvetSayisi = ilceSatirlari.filter(r => (r['Atama Durumu'] || '').toString().trim() === 'Evet').length;
+                console.log(`  ${ilce} son durum: ${sonEvetSayisi}/30`);
+            });
+
+            // Tabloyu yeniden render et
+            renderTable();
+            alert('Otomatik atama tamamlandı!');
+        }
+
+        // İndir
+        function indir() {
+            if (!originalWorkbook) {
+                alert('Veriler henüz yüklenmedi!');
+                return;
+            }
+
+            // Orijinal Adresler sheet'ini kopyala
+            const originalSheet = originalWorkbook.Sheets['Adresler'];
+            const newSheet = JSON.parse(JSON.stringify(originalSheet));
+
+            // Mevcut aralığı al
+            const range = XLSX.utils.decode_range(newSheet['!ref']);
+
+            // Atama Durumu sütununu bul
+            let atamaDurumuCol = -1;
+            for (let c = range.s.c; c <= range.e.c; c++) {
+                const cellAddr = XLSX.utils.encode_cell({ r: 0, c: c });
+                const cell = newSheet[cellAddr];
+                if (cell && cell.v === 'Atama Durumu') {
+                    atamaDurumuCol = c;
+                    break;
+                }
+            }
+
+            // Görüşme Durumu sütununu ekle (Atama Durumu'nun hemen yanına - N sütunu)
+            const gorusmeDurumuCol = atamaDurumuCol !== -1 ? atamaDurumuCol + 1 : range.e.c + 1;
+
+            // Mevcut sütunları sağa kaydır (eğer Görüşme Durumu sütunu ortaya ekleniyorsa)
+            if (atamaDurumuCol !== -1 && gorusmeDurumuCol <= range.e.c) {
+                // Sağdan sola doğru tüm hücreleri bir sütun sağa kaydır
+                for (let r = 0; r <= range.e.r; r++) {
+                    for (let c = range.e.c; c >= gorusmeDurumuCol; c--) {
+                        const oldAddr = XLSX.utils.encode_cell({ r: r, c: c });
+                        const newAddr = XLSX.utils.encode_cell({ r: r, c: c + 1 });
+                        if (newSheet[oldAddr]) {
+                            newSheet[newAddr] = newSheet[oldAddr];
+                            delete newSheet[oldAddr];
+                        }
+                    }
+                }
+            }
+
+            // Başlık ekle
+            const headerAddr = XLSX.utils.encode_cell({ r: 0, c: gorusmeDurumuCol });
+            newSheet[headerAddr] = { t: 's', v: 'Görüşme Durumu' };
+
+            // Atama Durumu ve Görüşme Durumu değerlerini güncelle
+            adreslerData.forEach((row, idx) => {
+                const rowNum = idx + 1; // 0 header, veriler 1'den başlar
+
+                // Atama Durumu güncelle
+                if (atamaDurumuCol !== -1) {
+                    const atamaCellAddr = XLSX.utils.encode_cell({ r: rowNum, c: atamaDurumuCol });
+                    const atamaDurumu = (row['Atama Durumu'] || '').toString().trim();
+                    if (atamaDurumu) {
+                        newSheet[atamaCellAddr] = { t: 's', v: atamaDurumu };
+                    } else {
+                        // Boş bırak
+                        delete newSheet[atamaCellAddr];
+                    }
+                }
+
+                // Görüşme Durumu ekle
+                const id = (row['ID'] || '').toString().trim();
+                const gorusmeDurum = gorusmeData[id] || '';
+                const gorusmeCellAddr = XLSX.utils.encode_cell({ r: rowNum, c: gorusmeDurumuCol });
+                if (gorusmeDurum) {
+                    newSheet[gorusmeCellAddr] = { t: 's', v: gorusmeDurum };
+                } else {
+                    delete newSheet[gorusmeCellAddr];
+                }
+            });
+
+            // Yeni aralığı güncelle
+            range.e.c = range.e.c + 1;
+            newSheet['!ref'] = XLSX.utils.encode_range(range);
+
+            // Yeni workbook oluştur
+            const newWorkbook = XLSX.utils.book_new();
+
+            // Tüm sheet'leri kopyala
+            originalWorkbook.SheetNames.forEach(sheetName => {
+                if (sheetName === 'Adresler') {
+                    XLSX.utils.book_append_sheet(newWorkbook, newSheet, sheetName);
+                } else {
+                    XLSX.utils.book_append_sheet(newWorkbook, originalWorkbook.Sheets[sheetName], sheetName);
+                }
+            });
+
+            // İndir
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+            const fileName = `atama_listesi_${dateStr}.xlsx`;
+
+            XLSX.writeFile(newWorkbook, fileName);
+            console.log('İndirildi:', fileName);
+        }
+
+        // Önizle
+        function onizle() {
+            if (displayData.length === 0) {
+                alert('Gösterilecek veri bulunamadı!');
+                return;
+            }
+
+            // İlçe bazında değişiklikleri hesapla
+            const ilceGruplari = {};
+            displayData.forEach(row => {
+                const ilce = (row['ILCE'] || '').toString().trim();
+                if (!ilceGruplari[ilce]) {
+                    ilceGruplari[ilce] = {
+                        yeniEklenen: [],
+                        cikarilan: [],
+                        toplamEvet: 0
+                    };
+                }
+
+                const id = (row['ID'] || '').toString().trim();
+                const mevcutAtama = (row['Atama Durumu'] || '').toString().trim();
+                const orijinalAtama = originalAtamaDurumlari[id] || '';
+                const kategori = row['ANA KATEGORİ'] || 'Diğer';
+
+                // Yeni eklenen: orijinalde Evet değildi, şimdi Evet
+                if (mevcutAtama === 'Evet' && orijinalAtama !== 'Evet') {
+                    ilceGruplari[ilce].yeniEklenen.push({ id, kategori, adi: row['ADI'] || '' });
+                }
+
+                // Çıkarılan: orijinalde Evet idi, şimdi değil
+                if (orijinalAtama === 'Evet' && mevcutAtama !== 'Evet') {
+                    ilceGruplari[ilce].cikarilan.push({ id, kategori, adi: row['ADI'] || '' });
+                }
+
+                // Toplam Evet sayısı
+                if (mevcutAtama === 'Evet') {
+                    ilceGruplari[ilce].toplamEvet++;
+                }
+            });
+
+            // HTML oluştur
+            let html = '';
+            const sortedIlceler = Object.keys(ilceGruplari).sort((a, b) => a.localeCompare(b, 'tr'));
+
+            let toplamYeniEklenen = 0;
+            let toplamCikarilan = 0;
+
+            sortedIlceler.forEach(ilce => {
+                const data = ilceGruplari[ilce];
+
+                // Değişiklik yoksa atla
+                if (data.yeniEklenen.length === 0 && data.cikarilan.length === 0) {
+                    return;
+                }
+
+                toplamYeniEklenen += data.yeniEklenen.length;
+                toplamCikarilan += data.cikarilan.length;
+
+                // Kategori dağılımı
+                const kategoriSayilari = {};
+                data.yeniEklenen.forEach(item => {
+                    kategoriSayilari[item.kategori] = (kategoriSayilari[item.kategori] || 0) + 1;
+                });
+
+                html += `
+                    <div class="preview-ilce">
+                        <div class="preview-ilce-header">
+                            <span>📍 ${ilce}</span>
+                            <span>${data.toplamEvet}/30 atama</span>
+                        </div>
+                        <div class="preview-ilce-body">
+                            <div class="preview-stat">
+                                <span class="label">Yeni Eklenen:</span>
+                                <span class="value added">+${data.yeniEklenen.length}</span>
+                            </div>
+                            <div class="preview-stat">
+                                <span class="label">Çıkarılan:</span>
+                                <span class="value removed">-${data.cikarilan.length}</span>
+                            </div>
+                `;
+
+                if (data.yeniEklenen.length > 0) {
+                    html += `
+                        <div class="preview-stat" style="flex-direction: column; align-items: flex-start;">
+                            <span class="label" style="margin-bottom: 8px;">Eklenen Kategoriler:</span>
+                            <div>
+                    `;
+                    Object.entries(kategoriSayilari).forEach(([kat, sayi]) => {
+                        html += `<span class="preview-kategori">${kat}: ${sayi}</span>`;
+                    });
+                    html += '</div></div>';
+                }
+
+                html += '</div></div>';
+            });
+
+            // Özet
+            if (toplamYeniEklenen === 0 && toplamCikarilan === 0) {
+                html = '<p style="text-align: center; color: #666; padding: 40px;">Henüz değişiklik yapılmadı.</p>';
+            } else {
+                html = `
+                    <div style="margin-bottom: 20px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
+                        <strong>Toplam Özet:</strong> 
+                        <span style="color: #43a047; margin-left: 12px;">+${toplamYeniEklenen} eklendi</span>
+                        <span style="color: #e53935; margin-left: 12px;">-${toplamCikarilan} çıkarıldı</span>
+                    </div>
+                ` + html;
+            }
+
+            document.getElementById('previewBody').innerHTML = html;
+            document.getElementById('previewModal').classList.add('show');
+        }
+
+        // Modal kapat
+        function closePreviewModal() {
+            document.getElementById('previewModal').classList.remove('show');
+        }
+
+        function closeModal(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                event.target.classList.remove('show');
+            }
+        }
+
+        // Başlat
+        loadData();
+    </script>
+</body>
+
+</html>

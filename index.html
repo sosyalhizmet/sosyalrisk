@@ -536,7 +536,7 @@
     <p class="subtitle">Saha Koordinasyon Araçları</p>
 
     <!-- Ana Seçimler -->
-    <div class="main-grid" id="mainGrid" style="grid-template-columns: repeat(4, 220px);">
+    <div class="main-grid" id="mainGrid" style="grid-template-columns: repeat(5, 220px);">
         <a href="istanbul_harita_v2.html" class="main-card">
             <div class="main-card-icon">
                 <svg viewBox="0 0 24 24">
@@ -581,6 +581,18 @@
             <h2>Veri Araçları</h2>
             <p>CSV dönüştürme araçları</p>
         </div>
+
+        <a href="atama_araci.html" class="main-card" id="atamaAraciCard">
+            <div class="main-card-icon" style="background: linear-gradient(135deg, #fb8c00 0%, #f57c00 100%);">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    <path d="M12 11v6M9 14h6" />
+                </svg>
+            </div>
+            <h2>Atama Aracı</h2>
+            <p>İlçe bazında atama yönetimi</p>
+        </a>
     </div>
 
     <!-- Veri Araçları Bölümü -->
@@ -645,9 +657,10 @@
                 const password = input.value.toLowerCase().trim();
 
                 if (password === 'saha') {
-                    // Saha rolü - Veri Araçları görünmez
+                    // Saha rolü - Veri Araçları ve Atama Aracı görünmez
                     document.getElementById('loginOverlay').classList.add('hidden');
                     document.getElementById('veriAraclariCard').style.display = 'none';
+                    document.getElementById('atamaAraciCard').style.display = 'none';
                     document.getElementById('mainGrid').style.gridTemplateColumns = 'repeat(3, 220px)';
                     document.getElementById('logoutBtn').classList.remove('hidden');
                     localStorage.setItem('userRole', 'saha');
@@ -672,9 +685,10 @@
             document.getElementById('loginOverlay').classList.remove('hidden');
             document.getElementById('passwordInput').value = '';
             document.getElementById('passwordInput').focus();
-            // Veri araçları kartını ve gridi resetle
+            // Veri araçları ve atama aracı kartlarını ve gridi resetle
             document.getElementById('veriAraclariCard').style.display = '';
-            document.getElementById('mainGrid').style.gridTemplateColumns = 'repeat(4, 220px)';
+            document.getElementById('atamaAraciCard').style.display = '';
+            document.getElementById('mainGrid').style.gridTemplateColumns = 'repeat(5, 220px)';
             hideTools();
         }
 
@@ -684,6 +698,7 @@
             if (role === 'saha') {
                 document.getElementById('loginOverlay').classList.add('hidden');
                 document.getElementById('veriAraclariCard').style.display = 'none';
+                document.getElementById('atamaAraciCard').style.display = 'none';
                 document.getElementById('mainGrid').style.gridTemplateColumns = 'repeat(3, 220px)';
                 document.getElementById('logoutBtn').classList.remove('hidden');
             } else if (role === 'yonetici') {
